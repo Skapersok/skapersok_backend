@@ -3,7 +3,8 @@ from pathlib import Path
 # Base folder for your project (directory of this file)
 
 # Persistent data folder (inside Docker volume)
-DATA_FOLDER_PATH = Path("data")
+USER_DATA = Path("data")
+DATA_FOLDER_PATH = USER_DATA / "data"
 DATABASE_PATH = DATA_FOLDER_PATH / "database.db"
 USERBASE_PATH = DATA_FOLDER_PATH / "users.db"
 
@@ -15,8 +16,8 @@ DESCRIPTION_IMAGE_FOLDER = IMAGE_FOLDER / "descimgs"
 # Config folder (inside Docker volume)
 CONFIG_FOLDER = Path("config")
 
-# Backup folder (inside Docker volume)
-BACKUP_FOLDER = Path("backups")
+# Backup folder (inside data)
+BACKUP_FOLDER = USER_DATA / "backups"
 
 # Environment variables
 DOTENV_PATH = CONFIG_FOLDER / ".env"

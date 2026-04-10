@@ -1,5 +1,4 @@
 # Byte-compiled / optimized / DLL files
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,7 +23,6 @@ pip-wheel-metadata/
 # these directories are mounted as volumes in Docker, keep them out of Git
 data/
 temp/
-backups/
 config/
 exports/
 

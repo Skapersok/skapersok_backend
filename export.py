@@ -51,4 +51,5 @@ def export_database(export_name: Path):
 
 
 if __name__ == "__main__":
-    export_database(Path("export1"))
+    name = input("Enter export name: ")
+    export_database(Path(name))

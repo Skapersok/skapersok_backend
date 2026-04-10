@@ -105,3 +105,10 @@ def migrate():
     while version < NEWEST_DATABASE_VERSION:
         version = _increment()
         print("Updated user database to version", version)
+
+
+def is_up_to_date() -> bool:
+    """
+    Check if the user database is up to date.
+    """
+    return _get_database_version() == NEWEST_DATABASE_VERSION
