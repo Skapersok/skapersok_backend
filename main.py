@@ -1,0 +1,536 @@
+import multiprocessing
+from typing import Annotated
+from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from auth import (
+    Token,
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    require_role,
+    User,
+)
+import auth
+import backups
+from beacon import beacon
+import settings
+import database as db
+from pydantic import BaseModel
+from contextlib import asynccontextmanager
+import dbmigrator
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # === Startup code ===
+
+    dbmigrator.migrate()
+
+    # Server ID
+    server_id = settings.ID
+    server_name = db.get_root()["name"]
+
+    # Start beacon once
+    beacon.start(
+        server_port=settings.PORT,
+        server_name=server_name,
+        server_id=server_id,
+    )
+
+    # Start backup process once
+    backup_process = multiprocessing.Process(
+        target=backups.periodic_backup,
+        daemon=True,
+        name="backuper",
+    )
+    backup_process.start()
+
+    # === The server runs here ===
+    yield
+
+    # === Shutdown code goes here ===
+
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://skapersok.no",
+        "https://www.skapersok.no",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+    # If you use auth cookies/sessions, keep True.
+    # If you only use Bearer tokens, False is usually simpler.
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],
+)
+
+
+class Item(BaseModel):
+    placement_code: str
+    name: str | None = None
+    description: str | None = None
+    keywords: str | None = None
+    children_arrangement: str | None = None
+    self_alignment: str | None = None
+    color: str | None = None
+
+
+@app.post("/auth/login")
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> Token:
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.username})
+
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@app.get("/auth/authorized")
+async def authorized(current_user: Annotated[User, Depends(get_current_user)]):
+    return {"message": f"Hello {current_user.username}, you are authorized :)"}
+
+
+@app.post("/users/create")
+async def create_user(
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    user: User = Depends(require_role("admin")),
+):
+    if role not in auth.ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role.")
+
+    try:
+        auth.create_user(username, password, role)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success"}
+
+
+@app.put("/users/update")
+async def update_user(
+    username: str = Form(...),
+    new_password: str | None = Form(None),
+    new_role: str | None = Form(None),
+    user: User = Depends(require_role("admin")),
+):
+    if new_role is not None and new_role not in auth.ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role.")
+
+    try:
+        if new_password is not None:
+            auth.update_user_password(username, new_password)
+        if new_role is not None:
+            # Check if this is the last admin before changing the role
+            all_admins = auth.get_all_users_with_role("admin")
+            if (
+                new_role == "admin"
+                and len(all_admins) == 1
+                and all_admins[0].username == username
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot make the last admin user not an admin.",
+                )
+            auth.update_user_role(username, new_role)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success"}
+
+
+@app.delete("/users/remove")
+async def remove_user(
+    username: str = Form(...),
+    user: User = Depends(require_role("admin")),
+):
+
+    all_admins = auth.get_all_users_with_role("admin")
+    if len(all_admins) == 1 and all_admins[0].username == username:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete the last admin user. Create another admin before deleting this one.",
+        )
+    try:
+        auth.delete_user(username)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"status": "success"}
+
+
+@app.get("/users/get/all")
+async def get_all_users(user: User = Depends(require_role("admin"))):
+    users = auth.all_users()
+
+    return list(map(lambda user: {"username": user.username, "role": user.role}, users))
+
+
+@app.get("/users/get/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    user_raw = auth.get_user(current_user.username)
+    user = User(id=user_raw.id, username=user_raw.username, role=user_raw.role)
+
+    return {"username": user.username, "role": user.role, "id": user.id}
+
+
+@app.get("/id")
+async def get_server_id():
+    return {"id": settings.ID}
+
+
+@app.get("/ping")
+async def ping():
+    return {"message": "pong"}
+
+
+@app.get("/get/root")
+async def get_root():
+    placement_code = ""
+    if not db.exists(placement_code):
+        raise HTTPException(status_code=404, detail="Root not found.")
+
+    item = db.get(placement_code)
+    return item
+
+
+@app.get("/get/all")
+async def get_all(only_leaves: bool = False):
+    all_items = db.get_all()
+    if only_leaves:
+        all_items = list(
+            filter(lambda item: db.is_leaf(item["placement_code"]), all_items)
+        )
+
+    all_items.sort(key=lambda item: item["name"])
+    return all_items
+
+
+@app.get("/get/children/root")
+async def get_children_root():
+    placement_code = ""
+    if not db.exists(placement_code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    children = map(lambda code: db.get(code), db.get_children(placement_code))
+
+    return list(children)
+
+
+@app.get("/get/children/")
+async def get_children(code: str | None = ""):
+
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    children = map(lambda code: db.get(code), db.get_children(code))
+    return list(children)
+
+
+@app.get("/get/")
+async def get(code: str | None = ""):
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    item = db.get(code)
+    return item
+
+
+@app.get("/search")
+async def search(
+    q: str = "",
+    max_results: int | None = None,
+    skip_number: int = 0,
+    only_leaves: bool = False,
+    info_level: int = 1,
+) -> dict[str, int | list[dict[str, str | bool | None]]]:
+    """
+    ## Query parameters
+    info_level:
+
+        - 0: all info
+
+        - 1: only placement_code and name
+    """
+
+    if info_level not in (0, 1):
+        raise HTTPException(status_code=100, detail="info_level must be one of 0 or 1")
+
+    results = db.search(q, only_leaves, max_results, skip_number)
+
+    if info_level == 0:
+        results = (
+            results[0],
+            db.construct_multiple_full(results[1]),
+        )
+    elif info_level == 1:
+        results = (
+            results[0],
+            db.construct_multiple(results[1], columns=["placement_code", "name"]),
+        )
+    response = {"total_matches": results[0], "results": results[1]}
+    return response
+
+
+@app.get("/trail")
+async def trail(
+    code: str = "",
+) -> list[dict[str, None | bool | str | list[dict[str, str | None | bool]]]]:
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    locations_codes = code.split("-")
+
+    layers = []
+
+    for depth in range(len(locations_codes) - 1):
+        layer = {}
+        code = "-".join(locations_codes[: depth + 1])
+
+        layer = db.get(code)
+
+        layer["siblings"] = []
+        siblings = db.get_siblings(code)
+
+        for sibling in siblings:
+
+            layer["siblings"].append(db.get(sibling["placement_code"]))
+
+        layers.append(layer)
+
+    return layers
+
+
+@app.get("/has_children/")
+async def has_children(code: str = ""):
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    return {"has_children": not db.is_leaf(code)}
+
+
+@app.get("/descimage/root")
+async def descimage_root():
+    """
+    Sends the description image of the root
+    """
+    placement_code = ""
+    if not db.exists(placement_code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    path = db.description_image_path(placement_code)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Description image not found.")
+
+    return FileResponse(path)
+
+
+@app.get("/mapimage/root")
+async def mapimage_root():
+    """
+    Sends the map image of the root
+    """
+    placement_code = ""
+    if not db.exists(placement_code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    path = db.map_image_path(placement_code)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Map image not found.")
+
+    return FileResponse(path)
+
+
+@app.get("/descimage/")
+async def descimage(code: str | None = ""):
+    """
+    Sends the description image
+    """
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    path = db.description_image_path(code)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Description image not found.")
+
+    return FileResponse(path)
+
+
+@app.get("/mapimage/")
+async def mapimage(code: str | None = ""):
+    """
+    Sends the map image
+    """
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    path = db.map_image_path(code)
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Map image not found.")
+
+    return FileResponse(path)
+
+
+@app.post("/add")
+async def add_item(
+    placement_code: str = Form(...),
+    name: str = Form(...),
+    description: str | None = Form(None),
+    keywords: str | None = Form(None),
+    children_arrangement: str | None = Form(None),
+    self_alignment: str | None = Form(None),
+    color: str | None = Form(None),
+    map_image: UploadFile | None = File(None),
+    desc_image: UploadFile | None = File(None),
+    user: User = Depends(require_role(["admin", "maintainer"])),
+):
+    if db.exists(placement_code):
+        raise HTTPException(status_code=400, detail="Placement code already exists.")
+
+    if not db.verify_placement_code_syntax(placement_code):
+        raise HTTPException(status_code=400, detail="Invalid placement code syntax.")
+
+    if db.get_parent_code(placement_code) is None or not db.exists(
+        db.get_parent_code(placement_code)
+    ):
+        raise HTTPException(
+            status_code=400, detail="Parent placement code does not exist."
+        )
+
+    db.add(
+        placement_code=placement_code,
+        name=name,
+        description=description,
+        keywords=keywords,
+        children_arrangement=children_arrangement,
+        self_alignment=self_alignment,
+        color=color,
+    )
+
+    if map_image is not None:
+        path = db.map_image_path(placement_code)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(await map_image.read())
+
+    if desc_image is not None:
+        path = db.description_image_path(placement_code)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(await desc_image.read())
+
+    return {"status": "success"}
+
+
+@app.delete("/remove/")
+async def remove_item(
+    code: str, user: User = Depends(require_role(["admin", "maintainer"]))
+):
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    db.remove(code)
+    return {"status": "success"}
+
+
+@app.put("/update/root")
+async def update_root(
+    name: str | None = Form(None),
+    description: str | None = Form(None),
+    keywords: str | None = Form(None),
+    children_arrangement: str | None = Form(None),
+    self_alignment: str | None = Form(None),
+    color: str | None = Form(None),
+    map_image: UploadFile | None = None,
+    desc_image: UploadFile | None = None,
+    user: User = Depends(require_role(["admin", "maintainer", "editor"])),
+):
+    placement_code = ""
+
+    if not db.exists(placement_code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    db.update(
+        placement_code,
+        name=name,
+        description=description,
+        keywords=keywords,
+        children_arrangement=children_arrangement,
+        self_alignment=self_alignment,
+        color=color,
+    )
+
+    if map_image is not None:
+        # db.set_map_image(placement_code, map_image)
+        path = db.map_image_path(placement_code)
+        if path.exists():
+            path.unlink()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(await map_image.read())
+
+    if desc_image is not None:
+        # db.set_description_image(placement_code, desc_image)
+        path = db.description_image_path(placement_code)
+        if path.exists():
+            path.unlink()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(await desc_image.read())
+
+    return {"status": "success"}
+
+
+@app.put("/update/")
+async def update_item(
+    code: str,
+    new_placement_code: str | None = Form(None),
+    name: str | None = Form(None),
+    description: str | None = Form(None),
+    keywords: str | None = Form(None),
+    children_arrangement: str | None = Form(None),
+    self_alignment: str | None = Form(None),
+    color: str | None = Form(None),
+    map_image: UploadFile | None = None,
+    desc_image: UploadFile | None = None,
+    user: User = Depends(require_role(["admin", "maintainer", "editor"])),
+):
+    if not db.exists(code):
+        raise HTTPException(status_code=404, detail="Placement not found.")
+
+    db.update(
+        code,
+        name=name,
+        description=description,
+        keywords=keywords,
+        children_arrangement=children_arrangement,
+        self_alignment=self_alignment,
+        color=color,
+    )
+
+    if new_placement_code is not None and new_placement_code != code:
+        db.update_placement_code(code, new_placement_code)
+
+    if map_image is not None:
+        await db.set_map_image(code, map_image)
+
+    if desc_image is not None:
+        await db.set_description_image(code, desc_image)
+
+    return {"status": "success"}

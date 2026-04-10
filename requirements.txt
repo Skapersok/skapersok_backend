@@ -1,0 +1,9 @@
+Pillow
+pillow-heif
+rapidfuzz
+cryptography
+fastapi[standard]
+uvicorn
+pydantic
+pwdlib[argon2]
+pyjwt

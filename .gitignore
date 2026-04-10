@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE/editor directories
+.vscode/
+.idea/
+
+# Python packaging/build
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# User data and runtime files
+# these directories are mounted as volumes in Docker, keep them out of Git
+data/
+temp/
+backups/
+config/
+exports/
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor swap files
+*.swp

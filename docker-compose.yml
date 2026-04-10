@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./backups:/app/backups
+    restart: unless-stopped

@@ -1,0 +1,42 @@
+from pathlib import Path
+
+# Base folder for your project (directory of this file)
+
+# Persistent data folder (inside Docker volume)
+DATA_FOLDER_PATH = Path("data")
+DATABASE_PATH = DATA_FOLDER_PATH / "database.db"
+USERBASE_PATH = DATA_FOLDER_PATH / "users.db"
+
+# Image folders (inside data)
+IMAGE_FOLDER = DATA_FOLDER_PATH / "img"
+MAP_IMAGE_FOLDER = IMAGE_FOLDER / "mapimgs"
+DESCRIPTION_IMAGE_FOLDER = IMAGE_FOLDER / "descimgs"
+
+# Config folder (inside Docker volume)
+CONFIG_FOLDER = Path("config")
+
+# Backup folder (inside Docker volume)
+BACKUP_FOLDER = Path("backups")
+
+# Environment variables
+DOTENV_PATH = CONFIG_FOLDER / ".env"
+
+# Temporary folder (ephemeral)
+TEMP_FOLDER = Path("temp")
+
+
+def ensure_exists() -> None:
+    """
+    Ensure all necessary folders exist.
+    - DATA_FOLDER_PATH and its subfolders are persisted as a Docker volume.
+    - TEMP_FOLDER is ephemeral, created inside the container.
+    """
+    for folder in (
+        DATA_FOLDER_PATH,
+        MAP_IMAGE_FOLDER,
+        DESCRIPTION_IMAGE_FOLDER,
+        TEMP_FOLDER,
+        CONFIG_FOLDER,
+        BACKUP_FOLDER,
+    ):
+        folder.mkdir(parents=True, exist_ok=True)
