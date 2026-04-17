@@ -572,7 +572,7 @@ async def dump_backup(user: User = Depends(require_role("admin"))):
     backups.dump()
 
 
-@app.post("/backups/restore")
+@app.post("/backups/schedule_restore")
 async def restore_backup(id: str, user: User = Depends(require_role("admin"))):
     info = backups.get_backup_info_by_id(id)
     if info is None:

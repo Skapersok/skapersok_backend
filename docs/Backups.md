@@ -21,7 +21,7 @@ GET /backups/get/all
 POST /backups/dump
 - Creates a backup from the current state of the item repository.
 
-POST /backups/restore
+POST /backups/schedule_restore
 - Arguments:
   - id: the id of the backup to restore from
 
