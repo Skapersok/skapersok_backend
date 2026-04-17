@@ -38,6 +38,15 @@ password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
+def get_all_users() -> list[User]:
+    conn = sqlite3.connect(paths.USERBASE_PATH, timeout=30, check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role FROM users")
+    users = [User(id=row[0], username=row[1], role=row[2]) for row in cursor.fetchall()]
+    conn.close()
+    return users
+
+
 def create_user(username: str, password: str, role: str):
     hashed_password = get_password_hash(password)
     conn = sqlite3.connect(paths.USERBASE_PATH, timeout=30, check_same_thread=False)
@@ -73,6 +82,7 @@ def get_user(username: str) -> UserInDB | None:
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username=?", (username,))
     row = cursor.fetchone()
+    conn.close()
 
     if row is None:
         return None
