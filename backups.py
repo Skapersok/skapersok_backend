@@ -1,23 +1,39 @@
 import shutil
 import time
-import datetime
 import uuid
 import paths
 from pathlib import Path
 import settings
+import json
+from datetime import datetime, timezone
+
+PENDING_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.json"
+FAILED_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.failed.json"
+
+
+TIMESTAMP_FILE_FORMAT = "%Y-%m-%dT%H-%M-%S.%f"
 
 
 class BackupInfo:
-    def __init__(self, id: str, timestamp: datetime.datetime):
+    def __init__(self, id: str, timestamp: datetime):
         self.id = id
         self.timestamp = timestamp
 
     def name(self) -> str:
-        return self.timestamp.isoformat() + " " + self.id
+        # Safe for Windows filenames
+        return self.timestamp.strftime(TIMESTAMP_FILE_FORMAT) + " " + self.id
 
+    @staticmethod
     def create_from_name(name: str):
         timestamp_str, id = name.split(" ", 1)
-        timestamp = datetime.datetime.fromisoformat(timestamp_str)
+
+        try:
+            timestamp = datetime.fromisoformat(timestamp_str)  # old format
+        except ValueError:
+            timestamp = datetime.strptime(
+                timestamp_str, TIMESTAMP_FILE_FORMAT
+            )  # new format
+
         return BackupInfo(id=id, timestamp=timestamp)
 
     def size(self) -> int:
@@ -28,6 +44,61 @@ class BackupInfo:
         return 0
 
 
+def _write_json_atomic(path: Path, payload: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    with temp_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=True, indent=2)
+    temp_path.replace(path)
+
+
+def schedule_restore(info: BackupInfo, requested_by: str | None = None) -> None:
+    payload = {
+        "backup_id": info.id,
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "requested_by": requested_by,
+    }
+    _write_json_atomic(PENDING_RESTORE_PATH, payload)
+
+
+def get_scheduled_restore() -> dict | None:
+    if not PENDING_RESTORE_PATH.exists():
+        return None
+    with PENDING_RESTORE_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def clear_scheduled_restore() -> None:
+    if PENDING_RESTORE_PATH.exists():
+        PENDING_RESTORE_PATH.unlink()
+
+
+def apply_scheduled_restore() -> bool:
+    pending = get_scheduled_restore()
+    if pending is None:
+        return False
+
+    backup_id = pending.get("backup_id")
+    if not isinstance(backup_id, str):
+        _write_json_atomic(
+            FAILED_RESTORE_PATH, {"error": "Invalid backup_id", "pending": pending}
+        )
+        clear_scheduled_restore()
+        return False
+
+    info = get_backup_info_by_id(backup_id)
+    if info is None:
+        _write_json_atomic(
+            FAILED_RESTORE_PATH, {"error": "Backup not found", "pending": pending}
+        )
+        clear_scheduled_restore()
+        return False
+
+    restore_backup(info)
+    clear_scheduled_restore()
+    return True
+
+
 def periodic_backup():
     """
     Run periodic backups. This function halts the thread.
@@ -35,9 +106,17 @@ def periodic_backup():
     try:
         while True:
             time.sleep(settings.BACKUP_INTERVAL_SECONDS)
-            create_backup()
+            dump()
     except KeyboardInterrupt:
         pass
+
+
+def get_backup_info_by_id(id: str) -> BackupInfo | None:
+    for backup in all_backups():
+        if backup.id == id:
+            return backup
+
+    return None
 
 
 def all_backups() -> list[BackupInfo]:
@@ -104,7 +183,7 @@ def dump():
 
     Note! If there is no database, no backup is created.
     """
-    now = datetime.datetime.now()
+    now = datetime.now()
     id = uuid.uuid4().hex
 
     info = BackupInfo(id=id, timestamp=now)

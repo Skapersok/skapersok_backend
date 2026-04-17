@@ -25,7 +25,15 @@ import dbmigrator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    backup_process = None
+
     # === Startup code ===
+
+    # Apply scheduled restore before normal DB usage
+    try:
+        backups.apply_scheduled_restore()
+    except Exception as e:
+        print(f"Scheduled restore failed: {e}")
 
     dbmigrator.migrate()
 
@@ -49,7 +57,12 @@ async def lifespan(app: FastAPI):
     backup_process.start()
 
     # === The server runs here ===
-    yield
+    try:
+        yield
+    finally:
+        if backup_process is not None and backup_process.is_alive():
+            backup_process.terminate()
+            backup_process.join(timeout=5)
 
     # === Shutdown code goes here ===
 
@@ -561,14 +574,20 @@ async def dump_backup(user: User = Depends(require_role("admin"))):
 
 @app.post("/backups/restore")
 async def restore_backup(id: str, user: User = Depends(require_role("admin"))):
-    """
-    Restores the database to the state of the specified backup.
-    This creates a dump of the database before restoring.
-    """
-    backups.dump()
+    info = backups.get_backup_info_by_id(id)
+    if info is None:
+        raise HTTPException(status_code=404, detail="Backup not found.")
 
-    info = backups.BackupInfo.create_from_name(id)
-    backups.restore_backup(info)
+    backups.dump()
+    backups.schedule_restore(info, requested_by=user.username)
+
+    return {
+        "status": "scheduled",
+        "message": "Restore scheduled. Restart the server to apply it.",
+        "backup_id": id,
+    }
+
+
 
 
 @app.delete("/backups/remove")
@@ -576,5 +595,8 @@ async def remove_backup(id: str, user: User = Depends(require_role("admin"))):
     """
     Removes the specified backup.
     """
-    info = backups.BackupInfo.create_from_name(id)
+    info = backups.get_backup_info_by_id(id)
+    if info is None:
+        raise HTTPException(status_code=404, detail="Backup not found.")
+
     backups.remove_backup(info)
