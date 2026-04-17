@@ -20,6 +20,13 @@ class BackupInfo:
         timestamp = datetime.datetime.fromisoformat(timestamp_str)
         return BackupInfo(id=id, timestamp=timestamp)
 
+    def size(self) -> int:
+        backup_folder = paths.BACKUP_FOLDER
+        archive_path = backup_folder / (self.name() + ".zip")
+        if archive_path.exists():
+            return archive_path.stat().st_size
+        return 0
+
 
 def periodic_backup():
     """

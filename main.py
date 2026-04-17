@@ -544,7 +544,11 @@ async def get_all_backups(user: User = Depends(require_role("admin"))):
     """
     Returns a list of all available backups.
     """
-    return backups.all_backups()
+
+    return [
+        {"id": b.id, "timestamp": b.timstamp, "size": b.size()}
+        for b in backups.all_backups()
+    ]
 
 
 @app.post("/backups/dump")
