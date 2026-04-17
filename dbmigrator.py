@@ -16,7 +16,7 @@ def migrate():
 
     print("=== Database migration ===")
     print("Creating backup...")
-    backups.create_backup()
+    backups.dump()
 
     print("Migrating database...\n")
     itemdbmigrator.migrate()

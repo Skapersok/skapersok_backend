@@ -534,3 +534,43 @@ async def update_item(
         await db.set_description_image(code, desc_image)
 
     return {"status": "success"}
+
+
+# === Backups ===
+
+
+@app.get("/backups/get/all")
+async def get_all_backups(user: User = Depends(require_role("admin"))):
+    """
+    Returns a list of all available backups.
+    """
+    return backups.all_backups()
+
+
+@app.post("/backups/dump")
+async def dump_backup(user: User = Depends(require_role("admin"))):
+    """
+    Creates a backup of the current database state.
+    """
+    backups.dump()
+
+
+@app.post("/backups/restore")
+async def restore_backup(id: str, user: User = Depends(require_role("admin"))):
+    """
+    Restores the database to the state of the specified backup.
+    This creates a dump of the database before restoring.
+    """
+    backups.dump()
+
+    info = backups.BackupInfo.create_from_name(id)
+    backups.restore_backup(info)
+
+
+@app.delete("/backups/remove")
+async def remove_backup(id: str, user: User = Depends(require_role("admin"))):
+    """
+    Removes the specified backup.
+    """
+    info = backups.BackupInfo.create_from_name(id)
+    backups.remove_backup(info)
