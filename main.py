@@ -559,7 +559,7 @@ async def get_all_backups(user: User = Depends(require_role("admin"))):
     """
 
     return [
-        {"id": b.id, "timestamp": b.timstamp, "size": b.size()}
+        {"id": b.id, "timestamp": b.timstamp, "size": b.size}
         for b in backups.all_backups()
     ]
 
@@ -567,14 +567,19 @@ async def get_all_backups(user: User = Depends(require_role("admin"))):
 @app.post("/backups/dump")
 async def dump_backup(user: User = Depends(require_role("admin"))):
     """
-    Creates a backup of the current database state.
+    Creates a backup of the database in its current state.
     """
+
     backups.dump()
 
 
 @app.post("/backups/schedule_restore")
-async def restore_backup(id: str, user: User = Depends(require_role("admin"))):
-    info = backups.get_backup_info_by_id(id)
+async def schedule_backup_restore(id: str, user: User = Depends(require_role("admin"))):
+    """
+    Schedules a restore from the backup id requested. The changes will be applied next startup.
+    """
+
+    info = backups.BackupInfo.from_id(id)
     if info is None:
         raise HTTPException(status_code=404, detail="Backup not found.")
 
@@ -588,14 +593,13 @@ async def restore_backup(id: str, user: User = Depends(require_role("admin"))):
     }
 
 
-
-
 @app.delete("/backups/remove")
 async def remove_backup(id: str, user: User = Depends(require_role("admin"))):
     """
     Removes the specified backup.
     """
-    info = backups.get_backup_info_by_id(id)
+
+    info = backups.BackupInfo.from_id(id)
     if info is None:
         raise HTTPException(status_code=404, detail="Backup not found.")
 

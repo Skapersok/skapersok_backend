@@ -14,34 +14,56 @@ FAILED_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.failed.json"
 TIMESTAMP_FILE_FORMAT = "%Y-%m-%dT%H-%M-%S.%f"
 
 
+def _list_backup_names() -> BackupInfo[str]:
+    backup_folder = paths.BACKUP_FOLDER
+
+    if not backup_folder.exists():
+        return []
+
+    names = []
+
+    for file in backup_folder.iterdir():
+        if file.is_file() and file.suffix == ".zip":
+            names.append(file.stem)
+
+    return names
+
+
 class BackupInfo:
     def __init__(self, id: str, timestamp: datetime):
         self.id = id
         self.timestamp = timestamp
+        self.name = self.timestamp.strftime(TIMESTAMP_FILE_FORMAT) + " " + self.id
 
-    def name(self) -> str:
-        # Safe for Windows filenames
-        return self.timestamp.strftime(TIMESTAMP_FILE_FORMAT) + " " + self.id
+        archive_path = paths.BACKUP_FOLDER / (self.name + ".zip")
+        if archive_path.exists():
+            self.size = archive_path.stat().st_size
+        else:
+            self.size = None
 
     @staticmethod
-    def create_from_name(name: str):
+    def from_name(name: str):
         timestamp_str, id = name.split(" ", 1)
 
-        try:
-            timestamp = datetime.fromisoformat(timestamp_str)  # old format
-        except ValueError:
-            timestamp = datetime.strptime(
-                timestamp_str, TIMESTAMP_FILE_FORMAT
-            )  # new format
+        timestamp = datetime.strptime(
+            timestamp_str, TIMESTAMP_FILE_FORMAT
+        )  # new format
 
         return BackupInfo(id=id, timestamp=timestamp)
 
-    def size(self) -> int:
-        backup_folder = paths.BACKUP_FOLDER
-        archive_path = backup_folder / (self.name() + ".zip")
-        if archive_path.exists():
-            return archive_path.stat().st_size
-        return 0
+    @staticmethod
+    def from_id(id: str):
+        timestamp = None
+
+        for name in _list_backup_names():
+            timestamp_str, _id = name.split(" ", 1)
+            if id == _id:
+                timestamp = datetime.strptime(timestamp_str, TIMESTAMP_FILE_FORMAT)
+        
+        if not timestamp:
+            return None
+         
+        return BackupInfo(id, timestamp)
 
 
 def _write_json_atomic(path: Path, payload: dict):
@@ -94,7 +116,7 @@ def apply_scheduled_restore() -> bool:
         clear_scheduled_restore()
         return False
 
-    restore_backup(info)
+    _restore_backup(info)
     clear_scheduled_restore()
     return True
 
@@ -120,17 +142,10 @@ def get_backup_info_by_id(id: str) -> BackupInfo | None:
 
 
 def all_backups() -> list[BackupInfo]:
-    backup_folder = paths.BACKUP_FOLDER
-
-    if not backup_folder.exists():
-        return []
-
     backups = []
 
-    for file in backup_folder.iterdir():
-        if file.is_file() and file.suffix == ".zip":
-            name = file.stem
-            backups.append(BackupInfo.create_from_name(name))
+    for name in _list_backup_names():
+        backups.append(BackupInfo.from_name(name))
 
     return backups
 
@@ -143,7 +158,7 @@ def remove_backup(info: BackupInfo):
         archive_path.unlink()
 
 
-def restore_backup(info: BackupInfo):
+def _restore_backup(info: BackupInfo):
     backup_folder = paths.BACKUP_FOLDER
     archive_path = backup_folder / (info.name() + ".zip")
 
