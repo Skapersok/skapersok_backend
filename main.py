@@ -559,7 +559,7 @@ async def get_all_backups(user: User = Depends(require_role("admin"))):
     """
 
     return [
-        {"id": b.id, "timestamp": b.timstamp, "size": b.size}
+        {"id": b.id, "timestamp": b.timestamp, "size": b.size}
         for b in backups.all_backups()
     ]
 
