@@ -59,10 +59,10 @@ class BackupInfo:
             timestamp_str, _id = name.split(" ", 1)
             if id == _id:
                 timestamp = datetime.strptime(timestamp_str, TIMESTAMP_FILE_FORMAT)
-        
+
         if not timestamp:
             return None
-         
+
         return BackupInfo(id, timestamp)
 
 
@@ -152,7 +152,7 @@ def all_backups() -> list[BackupInfo]:
 
 def remove_backup(info: BackupInfo):
     backup_folder = paths.BACKUP_FOLDER
-    archive_path = backup_folder / (info.name() + ".zip")
+    archive_path = backup_folder / (info.name + ".zip")
 
     if archive_path.exists():
         archive_path.unlink()
@@ -160,7 +160,7 @@ def remove_backup(info: BackupInfo):
 
 def _restore_backup(info: BackupInfo):
     backup_folder = paths.BACKUP_FOLDER
-    archive_path = backup_folder / (info.name() + ".zip")
+    archive_path = backup_folder / (info.name + ".zip")
 
     if not archive_path.exists():
         return
@@ -180,7 +180,7 @@ def create_backup(info: BackupInfo):
     if not paths.DATA_FOLDER_PATH.exists():
         return
 
-    basename = info.name()
+    basename = info.name
 
     archive_path = backup_folder / basename
     counter = 0
