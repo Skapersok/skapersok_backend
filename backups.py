@@ -108,7 +108,7 @@ def apply_scheduled_restore() -> bool:
         clear_scheduled_restore()
         return False
 
-    info = get_backup_info_by_id(backup_id)
+    info = BackupInfo.from_id(backup_id)
     if info is None:
         _write_json_atomic(
             FAILED_RESTORE_PATH, {"error": "Backup not found", "pending": pending}
@@ -131,14 +131,6 @@ def periodic_backup():
             dump()
     except KeyboardInterrupt:
         pass
-
-
-def get_backup_info_by_id(id: str) -> BackupInfo | None:
-    for backup in all_backups():
-        if backup.id == id:
-            return backup
-
-    return None
 
 
 def all_backups() -> list[BackupInfo]:
@@ -171,6 +163,24 @@ def _restore_backup(info: BackupInfo):
     shutil.unpack_archive(str(archive_path), str(paths.DATA_FOLDER_PATH))
 
 
+def _remove_old_backups_to_fit_max_size():
+    """
+    Removes backups so that they do not surpass the maximum size set in the settings.
+    """
+    backups = all_backups()
+    backups.sort(key=lambda b: b.timestamp, reverse=True)
+
+    total_size = 0
+
+    for b in backups:
+        if not b.size:
+            continue
+
+        total_size += b.size
+        if total_size > settings.MAX_BACKUPS_SIZE:
+            remove_backup(b)
+
+
 def create_backup(info: BackupInfo):
     backup_folder = paths.BACKUP_FOLDER
 
@@ -190,6 +200,8 @@ def create_backup(info: BackupInfo):
         archive_path = backup_folder / (basename + " " + str(counter))
 
     shutil.make_archive(str(archive_path), "zip", paths.DATA_FOLDER_PATH)
+
+    _remove_old_backups_to_fit_max_size()
 
 
 def dump():

@@ -123,3 +123,5 @@ except:
     raise ValueError(
         "Invalid value for ACCESS_TOKEN_EXPIRE_MINUTES in .env. It should be an integer."
     )
+
+MAX_BACKUPS_SIZE = int(get("MAX_BACKUPS_SIZE", "1000000000"))
