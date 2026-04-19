@@ -306,13 +306,15 @@ def update_placement_code(
 
         conn.commit()
 
-        os.replace(
-            map_image_path(old_placement_code), map_image_path(new_placement_code)
-        )
-        os.replace(
-            description_image_path(old_placement_code),
-            description_image_path(new_placement_code),
-        )
+        if has_map_image(old_placement_code):
+            os.replace(
+                map_image_path(old_placement_code), map_image_path(new_placement_code)
+            )
+        if has_description_image(old_placement_code):
+            os.replace(
+                description_image_path(old_placement_code),
+                description_image_path(new_placement_code),
+            )
 
     except Exception:
         conn.rollback()
