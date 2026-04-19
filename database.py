@@ -9,7 +9,7 @@ import os
 
 import paths
 import search as searching
-import settings
+from settings import settings
 
 register_heif_opener()
 

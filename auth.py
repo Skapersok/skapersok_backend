@@ -3,7 +3,7 @@ from typing import Annotated, Any
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-import settings
+from settings import settings
 from pwdlib import PasswordHash
 from pydantic import BaseModel
 import sqlite3

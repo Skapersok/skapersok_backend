@@ -16,7 +16,7 @@ from auth import (
 import auth
 import backups
 from beacon import beacon
-import settings
+from settings import settings
 import database as db
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -604,3 +604,34 @@ async def remove_backup(id: str, user: User = Depends(require_role("admin"))):
         raise HTTPException(status_code=404, detail="Backup not found.")
 
     backups.remove_backup(info)
+
+
+@app.get("/settings/get")
+async def get_setting(id: str):
+    if not id in settings.ALLOWED_SETTINGS:
+        raise HTTPException(
+            401,
+            "Setting must be one of: " + ", ".join(settings.ALLOWED_SETTINGS.keys()),
+        )
+    return settings.get_setting(id)
+
+
+class SettingsPayload(BaseModel):
+    image_quality: int | None = None
+    max_backups_size: int | None = None
+    backup_interval_seconds: int | None = None
+
+
+class SettingsUpdate(BaseModel):
+    settings: SettingsPayload
+
+
+@app.put("/settings/update")
+async def update_settings(
+    body: SettingsUpdate,
+    user: User = Depends(require_role("admin")),
+):
+    updates = body.settings.model_dump(exclude_none=True)
+    for name, value in updates.items():
+        settings.set_setting(name, value)
+    return {"status": "success"}

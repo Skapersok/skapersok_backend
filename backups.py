@@ -3,7 +3,7 @@ import time
 import uuid
 import paths
 from pathlib import Path
-import settings
+from settings import settings
 import json
 from datetime import datetime, timezone
 
