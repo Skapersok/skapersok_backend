@@ -14,7 +14,7 @@ FAILED_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.failed.json"
 TIMESTAMP_FILE_FORMAT = "%Y-%m-%dT%H-%M-%S.%f"
 
 
-def _list_backup_names() -> BackupInfo[str]:
+def _list_backup_names() -> list[str]:
     backup_folder = paths.BACKUP_FOLDER
 
     if not backup_folder.exists():
