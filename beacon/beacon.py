@@ -56,33 +56,36 @@ def _run(config_queue):
 
     # Initial config from queue
     info = config_queue.get()
+    try:
+        while True:
 
-    while True:
+            # Check for config updates (non-blocking)
+            try:
+                new_info = config_queue.get_nowait()
+                if new_info["name"] is not None:
+                    info["name"] = new_info["name"]
+                if new_info["port"] is not None:
+                    info["port"] = new_info["port"]
+                if new_info["id"] is not None:
+                    info["id"] = new_info["id"]
 
-        # Check for config updates (non-blocking)
-        try:
-            new_info = config_queue.get_nowait()
-            if new_info["name"] is not None:
-                info["name"] = new_info["name"]
-            if new_info["port"] is not None:
-                info["port"] = new_info["port"]
-            if new_info["id"] is not None:
-                info["id"] = new_info["id"]
+            except:
+                pass  # No new config, use existing
 
-        except:
-            pass  # No new config, use existing
+            response = f"{common.BEACON_RESPONSE_PREFIX}" + json.dumps(info)
+            try:
+                data, addr = sock.recvfrom(1024)
 
-        response = f"{common.BEACON_RESPONSE_PREFIX}" + json.dumps(info)
-        try:
-            data, addr = sock.recvfrom(1024)
+                if not data.decode() == common.CLIENT_REQUEST_IDENTIFIER:
+                    # Ignore those who does not know how to ask
+                    continue
 
-            if not data.decode() == common.CLIENT_REQUEST_IDENTIFIER:
-                # Ignore those who does not know how to ask
-                continue
-
-            sock.sendto(response.encode(), addr)  # unicast reply
-        except socket.timeout:
-            pass  # Timeout allows loop to check for interrupts
-
-    sock.close()
+                sock.sendto(response.encode(), addr)  # unicast reply
+            except socket.timeout:
+                pass  # Timeout allows loop to check for interrupts
+    except KeyboardInterrupt:
+        # Graceful exit on Ctrl+C
+        print("Beacon stopped.")
+    finally:
+        sock.close()
 
