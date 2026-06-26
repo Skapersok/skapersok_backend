@@ -185,7 +185,7 @@ def create_backup(info: BackupInfo):
     backup_folder = paths.BACKUP_FOLDER
 
     if not backup_folder.exists():
-        backup_folder.mkdir()
+        backup_folder.mkdir(parents=True, exist_ok=True)
 
     if not paths.DATA_FOLDER_PATH.exists():
         return
