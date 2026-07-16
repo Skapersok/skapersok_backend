@@ -334,6 +334,13 @@ def exists(placement_code: str) -> bool:
     return get(placement_code) is not None
 
 
+def all_exists(placement_codes: list[str]) -> bool:
+    for code in placement_codes:
+        if not exists(code):
+            return False
+    return True
+
+
 def get(placement_code: str) -> None | dict[str, str | None]:
     return construct_full(placement_code)
 

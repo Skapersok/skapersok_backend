@@ -458,8 +458,8 @@ async def remove_item(
     codes: list[str] = Form(...),
     user: User = Depends(require_role(["admin", "maintainer"])),
 ):
-    if not db.exists(codes):
-        raise HTTPException(status_code=404, detail="Placement not found.")
+    if not db.all_exists(codes):
+        raise HTTPException(status_code=404, detail="One or more items not found.")
 
     db.remove(codes)
     return {"status": "success"}
