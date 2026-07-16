@@ -210,13 +210,20 @@ def add(
 
 
 # Removes an inholder and all its children
-def remove(placement_code: str):
+def remove(placement_code: str | list[str]):
     conn = _connect_for_write()
     try:
         c = conn.cursor()
-        c.execute(
-            "DELETE FROM items WHERE placement_code LIKE ?", (placement_code + "%",)
-        )
+        if isinstance(placement_code, list):
+            placeholders = ",".join("?" * len(placement_code))
+            c.execute(
+                f"DELETE FROM items WHERE placement_code IN ({placeholders})",
+                placement_code,
+            )
+        else:
+            c.execute(
+                "DELETE FROM items WHERE placement_code LIKE ?", (placement_code + "%",)
+            )
         conn.commit()
     except Exception:
         conn.rollback()
