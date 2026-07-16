@@ -21,6 +21,7 @@ import database as db
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import dbmigrator
+import custom_values
 
 
 @asynccontextmanager
@@ -415,6 +416,7 @@ async def add_item(
     color: str | None = Form(None),
     map_image: UploadFile | None = File(None),
     desc_image: UploadFile | None = File(None),
+    custom_values: dict[str, str] | None = Form(None),
     user: User = Depends(require_role(["admin", "maintainer"])),
 ):
     if db.exists(placement_code):
@@ -438,6 +440,7 @@ async def add_item(
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
         color=color,
+        custom_values=custom_values,
     )
 
     if map_image is not None:
@@ -475,6 +478,7 @@ async def update_root(
     color: str | None = Form(None),
     map_image: UploadFile | None = None,
     desc_image: UploadFile | None = None,
+    custom_values: dict[str, str] | None = Form(None),
     user: User = Depends(require_role(["admin", "maintainer", "editor"])),
 ):
     placement_code = ""
@@ -490,6 +494,7 @@ async def update_root(
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
         color=color,
+        custom_values=custom_values,
     )
 
     if map_image is not None:
@@ -521,6 +526,7 @@ async def update_item(
     children_arrangement: str | None = Form(None),
     self_alignment: str | None = Form(None),
     color: str | None = Form(None),
+    custom_values: dict[str, str] | None = Form(None),
     map_image: UploadFile | None = None,
     desc_image: UploadFile | None = None,
     user: User = Depends(require_role(["admin", "maintainer", "editor"])),
@@ -536,6 +542,7 @@ async def update_item(
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
         color=color,
+        custom_values=custom_values,
     )
 
     if new_placement_code is not None and new_placement_code != code:
@@ -636,3 +643,18 @@ async def update_settings(
     for name, value in updates.items():
         settings.set_setting(name, value)
     return {"status": "success"}
+
+
+@app.get("/custom_value_types/get/<id>")
+async def get_custom_value_type(id: str):
+    value_type = custom_values.get_type(id)
+
+    if value_type is None:
+        raise HTTPException(status_code=404, detail="Custom value type not found.")
+
+    return value_type
+
+
+@app.get("/custom_value_types/get/all")
+async def get_all_custom_value_types():
+    return custom_values.get_all_types()

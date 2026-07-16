@@ -160,10 +160,6 @@ def _v2tov3():
         ALTER TABLE items ADD COLUMN custom_values TEXT;
     """)
 
-    c.execute("""
-        UPDATE items SET custom_values = '{}';
-    """)
-
     conn.commit()
     conn.close()
 

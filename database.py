@@ -182,6 +182,7 @@ def add(
     children_arrangement: str | None,
     self_alignment: str | None,
     color: str | None,
+    custom_values: dict[str, str] | None = None,
 ):
     if not verify_placement_code_syntax(placement_code):
         raise ValueError("Invalid placement code syntax")
@@ -190,7 +191,7 @@ def add(
     try:
         c = conn.cursor()
         c.execute(
-            "INSERT INTO items (placement_code, name, description, keywords, children_arrangement, self_alignment, color) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO items (placement_code, name, description, keywords, children_arrangement, self_alignment, color, custom_values) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 placement_code,
                 name,
@@ -199,6 +200,7 @@ def add(
                 children_arrangement,
                 self_alignment,
                 color,
+                custom_values,
             ),
         )
         conn.commit()
@@ -240,6 +242,7 @@ def update(
     children_arrangement: str | None,
     self_alignment: str | None,
     color: str | None,
+    custom_values: dict[str, str] | None = None,
 ):
     conn = _connect_for_write()
     try:
@@ -273,6 +276,11 @@ def update(
             c.execute(
                 "UPDATE items SET color = ? WHERE placement_code = ?",
                 (color, placement_code),
+            )
+        if custom_values is not None:
+            c.execute(
+                "UPDATE items SET custom_values = ? WHERE placement_code = ?",
+                (custom_values, placement_code),
             )
         conn.commit()
     except Exception:
