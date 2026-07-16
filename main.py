@@ -455,12 +455,12 @@ async def add_item(
 
 @app.delete("/remove/")
 async def remove_item(
-    code: str|list[str], user: User = Depends(require_role(["admin", "maintainer"]))
+    codes: list[str], user: User = Depends(require_role(["admin", "maintainer"]))
 ):
-    if not db.exists(code):
+    if not db.exists(codes):
         raise HTTPException(status_code=404, detail="Placement not found.")
 
-    db.remove(code)
+    db.remove(codes)
     return {"status": "success"}
 
 
