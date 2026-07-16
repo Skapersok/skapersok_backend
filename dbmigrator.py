@@ -1,3 +1,4 @@
+import custom_values_dbmigrator
 import itemdbmigrator
 import userdbmigrator
 
@@ -18,7 +19,11 @@ def migrate():
     print("Creating backup...")
     backups.dump()
 
-    print("Migrating database...\n")
+    print("\nMigrating database...")
     itemdbmigrator.migrate()
-    print("Migrating user database...\n")
+
+    print("\nMigrating user database...")
     userdbmigrator.migrate()
+
+    print("\nCustom values database migration...")
+    custom_values_dbmigrator.migrate()

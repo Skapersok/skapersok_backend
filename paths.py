@@ -7,6 +7,7 @@ USER_DATA = Path("data")
 DATA_FOLDER_PATH = USER_DATA / "data"
 DATABASE_PATH = DATA_FOLDER_PATH / "database.db"
 USERBASE_PATH = DATA_FOLDER_PATH / "users.db"
+CUSTOM_VALUE_TYPES = DATA_FOLDER_PATH / "custom_value_types.db"
 
 # Image folders (inside data)
 IMAGE_FOLDER = DATA_FOLDER_PATH / "img"

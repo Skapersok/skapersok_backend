@@ -43,8 +43,7 @@ def _nonetov0():
 
     conn = sqlite3.connect(paths.DATABASE_PATH)
     c = conn.cursor()
-    c.execute(
-        """
+    c.execute("""
         CREATE TABLE IF NOT EXISTS items (
             placement_code TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -54,8 +53,7 @@ def _nonetov0():
             self_alignment TEXT,
             color TEXT
         );
-    """
-    )
+    """)
     c.execute(
         "INSERT INTO items (placement_code, name) VALUES (?, ?)",
         (
@@ -70,6 +68,10 @@ def _nonetov0():
 
 
 def _v0tov1():
+    """
+    Rename the "inholders" table to "items" and fill in empty values for children_arrangement, self_alignment, and color.
+    """
+
     # inholders -> items
     if _table_exists("inholders") and not _table_exists("items"):
         conn = sqlite3.connect(paths.DATABASE_PATH)
@@ -95,10 +97,13 @@ def _v0tov1():
 
 
 def _v1tov2():
+    """
+    Add a full-text search table for items.
+    """
+
     conn = sqlite3.connect(paths.DATABASE_PATH)
     c = conn.cursor()
-    c.execute(
-        """
+    c.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
             placement_code,
             name,
@@ -107,37 +112,29 @@ def _v1tov2():
             content='items',
             content_rowid='rowid'
         );
-        """
-    )
+        """)
 
     # Populate table
-    c.execute(
-        """
+    c.execute("""
         INSERT INTO items_fts(rowid, placement_code, name, description, keywords)
         SELECT rowid, placement_code, name, description, keywords
         FROM items;
-        """
-    )
+        """)
 
     # Create triggers
-    c.execute(
-        """
+    c.execute("""
         CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
             INSERT INTO items_fts(rowid, placement_code, name, description, keywords)
             VALUES (new.rowid, new.placement_code, new.name, new.description, new.keywords);
         END;
-        """
-    )
-    c.execute(
-        """
+        """)
+    c.execute("""
         CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
             INSERT INTO items_fts(items_fts, rowid, placement_code, name, description, keywords)
             VALUES('delete', old.rowid, old.placement_code, old.name, old.description, old.keywords);
         END;
-    """
-    )
-    c.execute(
-        """
+    """)
+    c.execute("""
         CREATE TRIGGER IF NOT EXISTS items_au AFTER UPDATE ON items BEGIN
             INSERT INTO items_fts(items_fts, rowid, placement_code, name, description, keywords)
             VALUES('delete', old.rowid, old.placement_code, old.name, old.description, old.keywords);
@@ -145,12 +142,32 @@ def _v1tov2():
             INSERT INTO items_fts(rowid, placement_code, name, description, keywords)
             VALUES (new.rowid, new.placement_code, new.name, new.description, new.keywords);
         END;
-        """
-    )
+        """)
     conn.commit()
     conn.close()
 
     _update_database_version(2)
+
+
+def _v2tov3():
+    """
+    Add the custom_values column to the database.
+    """
+    conn = sqlite3.connect(paths.DATABASE_PATH)
+    c = conn.cursor()
+
+    c.execute("""
+        ALTER TABLE items ADD COLUMN custom_values TEXT;
+    """)
+
+    c.execute("""
+        UPDATE items SET custom_values = '{}';
+    """)
+
+    conn.commit()
+    conn.close()
+
+    _update_database_version(3)
 
 
 def _increment():
@@ -164,13 +181,15 @@ def _increment():
         _v0tov1()
     elif version == 1:
         _v1tov2()
+    elif version == 2:
+        _v2tov3()
     return _get_database_version()
 
 
 # IMPORTANT! When creating a new version n of the database:
 # 1. Create a _v[n-1]tov[n] function
 # 2. Set the below variable to n
-NEWEST_DATABASE_VERSION = 2
+NEWEST_DATABASE_VERSION = 3
 
 
 def migrate():
