@@ -246,7 +246,7 @@ async def get_children_root():
     return list(children)
 
 
-@app.get("/get/children/")
+@app.get("/get/children")
 async def get_children(code: str | None = ""):
 
     if not db.exists(code):
@@ -256,7 +256,7 @@ async def get_children(code: str | None = ""):
     return list(children)
 
 
-@app.get("/get/")
+@app.get("/get")
 async def get(code: str | None = ""):
     if not db.exists(code):
         raise HTTPException(status_code=404, detail="Placement not found.")
@@ -330,7 +330,7 @@ async def trail(
     return layers
 
 
-@app.get("/has_children/")
+@app.get("/has_children")
 async def has_children(code: str = ""):
     if not db.exists(code):
         raise HTTPException(status_code=404, detail="Placement not found.")
@@ -372,7 +372,7 @@ async def mapimage_root():
     return FileResponse(path)
 
 
-@app.get("/descimage/")
+@app.get("/descimage")
 async def descimage(code: str | None = ""):
     """
     Sends the description image
@@ -388,7 +388,7 @@ async def descimage(code: str | None = ""):
     return FileResponse(path)
 
 
-@app.get("/mapimage/")
+@app.get("/mapimage")
 async def mapimage(code: str | None = ""):
     """
     Sends the map image
@@ -453,7 +453,7 @@ async def add_item(
     return {"status": "success"}
 
 
-@app.delete("/remove/")
+@app.delete("/remove")
 async def remove_item(
     codes: list[str] = Form(...),
     user: User = Depends(require_role(["admin", "maintainer"])),
@@ -511,7 +511,7 @@ async def update_root(
     return {"status": "success"}
 
 
-@app.put("/update/")
+@app.put("/update")
 async def update_item(
     code: str,
     new_placement_code: str | None = Form(None),
