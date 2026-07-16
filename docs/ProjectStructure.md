@@ -1,77 +1,68 @@
 # Project Structure & Development Guide
 
-This document outlines the architectural structure of the Shelfsearch application following the refactoring to a modular, type-based architecture.
+This repository contains the backend service for Skapersøk. The code is organized around FastAPI routes, authentication, SQLite persistence, search, image handling, and backup management.
 
-## Overview
-
-The application is built using [Flet](https://flet.dev/) (Python) and follows a separation-of-concerns pattern. The codebase is organized into distinct layers: **Models** (Data), **Services** (Logic/Networking), and **UI** (Views & Components).
-
-## Directory Structure
-
-The source code is located in the `src/` directory.
+## High-level layout
 
 ```text
-src/
-├── main.py                 # Application entry point and routing configuration
-├── styles.py               # Centralized styling constants (Colors, Sizes, Fonts)
-├── models/                 # Pure data classes and business logic entities
-│   ├── location.py         # Location, DrawPoint, DrawPointsHandler
-│   ├── search.py           # SearchSettings
-│   └── user.py             # UserInformation
-├── services/               # External communication and application services
-│   ├── api.py              # DatabaseCommunicator, Server API wrapper
-│   └── discovery.py        # UDP Broadcast client for server discovery
-├── ui/                     # User Interface code
-│   ├── components/         # Reusable UI widgets
-│   │   ├── connecting.py   # Connection status indicators
-│   │   ├── editor.py       # Editor-specific tools (DrawCanvas, etc.)
-│   │   ├── forms.py        # Input forms and dialogs
-│   │   └── search.py       # Search bar and result lists
-│   └── views/              # Full-page layouts
-│       ├── editor.py       # Location editor page
-│       ├── home.py         # Landing/Home page
-│       └── search.py       # Main search interface page
-└── utils/                  # Helper functions
-    └── images.py           # Image processing utilities
+.
+├── auth.py               # Authentication, JWTs, role checks, user storage
+├── backups.py            # Backup creation, restore scheduling, cleanup
+├── database.py           # Item CRUD, validation, image paths, and helpers
+├── dbmigrator.py         # Entry point for database schema migration
+├── itemdbmigrator.py     # Item database schema versioning
+├── main.py               # FastAPI application and route definitions
+├── paths.py              # Path constants for data, config, backups, temp
+├── search.py             # Search implementation for full-text indexing
+├── settings.py           # Environment-backed settings helpers
+├── setup.py              # Initial setup script for first admin user
+├── start.sh              # Convenience launcher for the app
+├── config/               # Runtime configuration and .env file
+├── data/                 # Persistent data including SQLite files and images
+├── docs/                 # Project documentation
+└── temp/                 # Temporary working directory
 ```
 
-## Module Details
+## Core modules
 
-### 1. Models (`src/models/`)
-Contains the core data structures used throughout the app. These classes are generally decoupled from the UI.
-- **`Location`**: Represents a physical location/shelf, including placement codes and coordinates.
-- **`DrawPoint`**: Represents a point on the map editor canvas.
+### main.py
 
-### 2. Services (`src/services/`)
-Handles all "backend" logic and networking.
-- **`api.py`**: Contains `DatabaseCommunicator` for HTTP requests to the backend server.
-- **`discovery.py`**: Handles the UDP broadcast mechanism to automatically find the server on the local network.
+The FastAPI application entry point. It defines the API routes for authentication, item access, search, images, backups, and settings.
 
-### 3. UI (`src/ui/`)
-Split into **Views** (Pages) and **Components** (Widgets).
-- **Views**: Correspond to routes (e.g., `/`, `/search`, `/edit`). They assemble components into a full screen.
-- **Components**: Small, reusable pieces of UI (e.g., `LocationCard`, `SearchField`).
+### auth.py
 
-### 4. Styles (`src/styles.py`)
-A single source of truth for design tokens.
-- **`Colors`**: Application color palette.
-- **`Sizes`**: Standardized dimensions (padding, font sizes, icon sizes).
-- **`Fonts`**: Font family definitions.
+Handles login, token creation, user lookup, password hashing, and role-based access. The supported roles are admin, maintainer, editor, and viewer.
 
-## Routing
+### database.py
 
-Routing is handled in `src/main.py`. The application uses Flet's routing system to navigate between views:
-- `/`: Home Page
-- `/search/:url`: Search Page (connected to a specific server URL)
-- `/search/:url/edit`: Editor Page
+Contains the logic for interacting with the SQLite item database. It manages validation of placement codes, parent-child relationships, image storage, and item updates/removals.
 
-## Development Guidelines
+### search.py
 
-- **Imports**: Use absolute imports from `src` root where possible, or relative imports within modules.
-  - Example: `import models.location as loc_md`
-- **State Management**: State is currently managed within individual components or passed down via parameters.
-- **Adding New Features**:
-  1. Define data structures in `models/`.
-  2. Implement logic in `services/` if needed.
-  3. Create reusable widgets in `ui/components/`.
-  4. Assemble them in a view in `ui/views/`.
+Provides the search backend used by the /search endpoint. The application uses SQLite FTS5 for indexed text search.
+
+### backups.py
+
+Responsible for creating zip backups of the data directory, cleaning up old archives, and scheduling automatic restores on startup.
+
+### paths.py and settings.py
+
+Provide centralized filesystem and environment configuration. These modules define where the SQLite files, images, config, and backups live.
+
+## Runtime data layout
+
+The application uses the following persistent locations:
+
+- data/data/database.db: item database
+- data/data/users.db: user database
+- data/data/img/mapimgs/: map images
+- data/data/img/descimgs/: description images
+- data/backups/: zip backup archives
+- config/.env: runtime settings
+
+## Development notes
+
+- Most application logic should stay in the module that matches its responsibility.
+- Route handlers in main.py should stay concise and delegate to auth.py, database.py, backups.py, or search.py when possible.
+- The startup lifecycle in main.py performs migrations, applies scheduled restore actions, starts backup handling, and starts the beacon service.
+- For local development, use the setup script once and then start the server with start.sh or fastapi run.

@@ -1,30 +1,50 @@
-# How the backup system works
+# Backup system
 
-Only admins can manage backups.
+The backend can create full zip archives of the persisted data directory so the item database, user database, and image files can be restored later.
 
-Each backups covers the database in its entirety, not including automatically generated cache files.
+## Who can manage backups?
 
-## Metadata
+Backup management requires the admin role.
 
-Each backup has the following metadata:
-- Timestamp with second-resolution.
-- An unique ID
+## What is backed up?
 
-## Routes
+A backup includes the contents of the data directory, including:
 
-GET /backups/get/all
-- Returns list of all backup names, 
-  - name
-  - id
-  - size in bytes
+- SQLite database files
+- image files in the image folders
+- other persisted runtime data under data/
 
-POST /backups/dump
-- Creates a backup from the current state of the item repository.
+Temporary or generated cache files are not treated as a separate backup artifact.
 
-POST /backups/schedule_restore
-- Arguments:
-  - id: the id of the backup to restore from
+## Backup metadata
 
-DELETE /backups/remove
-- Arguments:
-  - id: the id the the backup to remove
+Each backup archive is identified by:
+
+- a timestamp in the format YYYY-MM-DDTHH-MM-SS.ffffff
+- a unique ID generated for the backup
+
+The backup archives are stored in the data/backups directory.
+
+## Backup routes
+
+### GET /backups/get/all
+
+Returns a list of backup objects with id, timestamp, and size.
+
+### POST /backups/dump
+
+Creates a new backup immediately from the current state of the data directory.
+
+### POST /backups/schedule_restore
+
+Schedules a restore from a specific backup ID. The restore is applied the next time the server starts.
+
+### DELETE /backups/remove
+
+Deletes a backup archive by ID.
+
+## Notes
+
+- The system also performs periodic backups based on the BACKUP_INTERVAL_SECONDS setting.
+- The restore flow removes the current data directory and replaces it with the backup contents.
+- If a restore is scheduled but the backup no longer exists, the restore is skipped and the pending state is written to config/pending_restore.failed.json.
