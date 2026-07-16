@@ -93,7 +93,6 @@ class Item(BaseModel):
     keywords: str | None = None
     children_arrangement: str | None = None
     self_alignment: str | None = None
-    color: str | None = None
 
 
 @app.post("/auth/login")
@@ -413,7 +412,6 @@ async def add_item(
     keywords: str | None = Form(None),
     children_arrangement: str | None = Form(None),
     self_alignment: str | None = Form(None),
-    color: str | None = Form(None),
     map_image: UploadFile | None = File(None),
     desc_image: UploadFile | None = File(None),
     custom_values: dict[str, str] | None = Form(None),
@@ -439,7 +437,6 @@ async def add_item(
         keywords=keywords,
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
-        color=color,
         custom_values=custom_values,
     )
 
@@ -475,7 +472,6 @@ async def update_root(
     keywords: str | None = Form(None),
     children_arrangement: str | None = Form(None),
     self_alignment: str | None = Form(None),
-    color: str | None = Form(None),
     map_image: UploadFile | None = None,
     desc_image: UploadFile | None = None,
     custom_values: dict[str, str] | None = Form(None),
@@ -493,7 +489,6 @@ async def update_root(
         keywords=keywords,
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
-        color=color,
         custom_values=custom_values,
     )
 
@@ -525,7 +520,6 @@ async def update_item(
     keywords: str | None = Form(None),
     children_arrangement: str | None = Form(None),
     self_alignment: str | None = Form(None),
-    color: str | None = Form(None),
     custom_values: dict[str, str] | None = Form(None),
     map_image: UploadFile | None = None,
     desc_image: UploadFile | None = None,
@@ -541,7 +535,6 @@ async def update_item(
         keywords=keywords,
         children_arrangement=children_arrangement,
         self_alignment=self_alignment,
-        color=color,
         custom_values=custom_values,
     )
 
