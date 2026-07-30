@@ -57,6 +57,17 @@ async def lifespan(app: FastAPI):
     )
     backup_process.start()
 
+    # Start browser if applicable
+    if settings.AUTOOPEN_BROWSER:
+        import webbrowser
+        import urllib.parse
+
+        server_url = f"http://localhost:{settings.PORT}"
+        encoded_url = "https://skapersok.no/join?url=" + urllib.parse.quote(
+            server_url, safe=""
+        )
+        webbrowser.open(encoded_url)
+
     # === The server runs here ===
     try:
         yield

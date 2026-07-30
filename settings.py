@@ -11,6 +11,7 @@ class Settings:
         "image_quality": ("IMAGE_QUALITY", int),
         "max_backups_size": ("MAX_BACKUPS_SIZE", int),
         "backup_interval_seconds": ("BACKUP_INTERVAL_SECONDS", int),
+        "autoopen_browser": ("AUTOOPEN_BROWSER", bool)
     }
 
     def __init__(self):
@@ -66,6 +67,8 @@ class Settings:
             raise ValueError(
                 "Invalid value for BACKUP_INTERVAL_SECONDS in .env. Must be an integer."
             )
+
+        self.AUTOOPEN_BROWSER: bool = bool(self.get("AUTOOPEN_BROWSER", True))
 
     # === .env I/O ===
 
