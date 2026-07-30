@@ -163,9 +163,9 @@ async def update_user(
             # Check if this is the last admin before changing the role
             all_admins = auth.get_all_users_with_role("admin")
             if (
-                new_role == "admin"
-                and len(all_admins) == 1
+                len(all_admins) == 1
                 and all_admins[0].username == username
+                and not new_role == "admin"
             ):
                 raise HTTPException(
                     status_code=400,
