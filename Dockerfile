@@ -18,7 +18,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
-RUN useradd --create-home appuser \
+RUN sed -i 's/\r$//' /app/entrypoint.sh \
+    && useradd --create-home appuser \
     && chown -R appuser:appuser /app \
     && chmod +x /app/entrypoint.sh
 
