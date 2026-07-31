@@ -30,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # Note: no USER directive here — container starts as root so the
 # entrypoint can chown the mounted volumes, then it drops to appuser itself
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["uv", "run", "python", "start.py"]
+CMD ["uv", "run", "python", "main.py"]

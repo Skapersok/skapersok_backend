@@ -123,13 +123,13 @@ Only `JWT_SECRET` needs attention; everything else has a sensible default.
 ### 4. Start the server
 
 ```bash
-uv run python start.py
+uv run python main.py
 ```
 
 or, with plain pip / an activated venv:
 
 ```bash
-python start.py
+python main.py
 ```
 
 This runs startup checks (folder creation, config bootstrap), starts the discovery beacon, and launches the API. By default it also opens your browser to the running instance — set `AUTOOPEN_BROWSER=false` in `config/.env` to disable this (this is already disabled automatically inside Docker).
@@ -160,7 +160,8 @@ sudo systemctl enable docker
 
 ## Main modules
 
-- `main.py`: FastAPI app, route definitions, and startup lifecycle
+- `main.py`: unified entry point (startup checks, beacon, server)
+- `routing.py`: FastAPI app, route definitions, and startup lifecycle
 - `auth.py`: authentication, JWT handling, and user roles
 - `database.py`: item CRUD, validation, and image path handling
 - `search.py`: full-text search logic
@@ -168,7 +169,6 @@ sudo systemctl enable docker
 - `dbmigrator.py` and `itemdbmigrator.py`: schema migration support
 - `settings.py` and `paths.py`: environment and filesystem configuration
 - `beacon.py`: UDP discovery beacon for LAN client auto-detection
-- `start.py`: unified entry point (startup checks, beacon, server)
 
 ## License
 
