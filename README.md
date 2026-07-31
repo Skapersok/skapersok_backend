@@ -134,7 +134,7 @@ Only `JWT_SECRET` needs attention; everything else has a sensible default.
 uv run python main.py
 ```
 
-or, with plain pip / an activated venv:
+or, with plain pip and an activated venv:
 
 ```bash
 python main.py
