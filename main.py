@@ -34,7 +34,7 @@ def main():
     if settings.autoopen_browser and not in_docker:
         threading.Thread(target=_open_browser, daemon=True).start()
 
-    uvicorn.run("main:app", host="0.0.0.0", port=settings.port)
+    uvicorn.run("routing:app", host="0.0.0.0", port=settings.port)
 
 
 if __name__ == "__main__":
