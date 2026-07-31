@@ -127,7 +127,7 @@ def periodic_backup():
     """
     try:
         while True:
-            time.sleep(settings.BACKUP_INTERVAL_SECONDS)
+            time.sleep(settings.backup_interval_seconds)
             dump()
     except KeyboardInterrupt:
         pass
@@ -177,7 +177,7 @@ def _remove_old_backups_to_fit_max_size():
             continue
 
         total_size += b.size
-        if total_size > settings.MAX_BACKUPS_SIZE:
+        if total_size > settings.max_backups_size:
             remove_backup(b)
 
 

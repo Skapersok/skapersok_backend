@@ -16,7 +16,7 @@ from auth import (
 import auth
 import backups
 from beacon import beacon
-from settings import settings
+from settings import settings, ALLOWED_SETTINGS, list_settings, get_setting, set_setting
 import database as db
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -39,12 +39,12 @@ async def lifespan(app: FastAPI):
     dbmigrator.migrate()
 
     # Server ID
-    server_id = settings.ID
+    server_id = settings.id
     server_name = db.get_root()["name"]
 
     # Start beacon once
     beacon.start(
-        server_port=settings.PORT,
+        server_port=settings.port,
         server_name=server_name,
         server_id=server_id,
     )
@@ -56,17 +56,6 @@ async def lifespan(app: FastAPI):
         name="backuper",
     )
     backup_process.start()
-
-    # Start browser if applicable
-    if settings.AUTOOPEN_BROWSER:
-        import webbrowser
-        import urllib.parse
-
-        server_url = f"http://localhost:{settings.PORT}"
-        encoded_url = "https://skapersok.no/join?url=" + urllib.parse.quote(
-            server_url, safe=""
-        )
-        webbrowser.open(encoded_url)
 
     # === The server runs here ===
     try:
@@ -217,7 +206,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @app.get("/id")
 async def get_server_id():
-    return {"id": settings.ID}
+    return {"id": settings.id}
 
 
 @app.get("/ping")
@@ -627,12 +616,12 @@ async def remove_backup(id: str, user: User = Depends(require_role("admin"))):
 
 @app.get("/settings/get")
 async def get_setting(id: str):
-    if not id in settings.ALLOWED_SETTINGS:
+    if not id in ALLOWED_SETTINGS:
         raise HTTPException(
             401,
-            "Setting must be one of: " + ", ".join(settings.ALLOWED_SETTINGS.keys()),
+            "Setting must be one of: " + ", ".join(ALLOWED_SETTINGS.keys()),
         )
-    return settings.get_setting(id)
+    return get_setting(id)
 
 
 class SettingsPayload(BaseModel):
@@ -651,8 +640,16 @@ async def update_settings(
     user: User = Depends(require_role("admin")),
 ):
     updates = body.settings.model_dump(exclude_none=True)
+
+    # Validate all settings
+    all_settings = list_settings()
+    for name in updates.keys():
+        if name not in all_settings.keys():
+            raise HTTPException(status_code=400, detail=f"Unknown setting: {name}")
+
     for name, value in updates.items():
-        settings.set_setting(name, value)
+        set_setting(name, value)
+
     return {"status": "success"}
 
 
