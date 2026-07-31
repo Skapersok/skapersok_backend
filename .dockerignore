@@ -1,4 +1,17 @@
 __pycache__/
 *.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
 data/
+config/
 .env
+
+.git/
+.gitignore
+.venv/
+
+*.md
+docs/
+tests/
