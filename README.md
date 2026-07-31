@@ -30,8 +30,16 @@ cd skapersok-backend
 
 ### 3. Start the server
 
+On **Linux**:
+
 ```bash
 docker compose up -d
+```
+
+On **Windows**:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
 ```
 
 This builds the image, creates the `data/` and `config/` folders on first run, and starts the server. On first boot, the app generates its own `config/.env` with a random `JWT_SECRET` and instance `ID` — no manual setup needed to get running.
