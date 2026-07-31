@@ -40,7 +40,7 @@ Check it's healthy:
 
 ```bash
 docker compose ps
-curl http://localhost:5000/health
+curl http://localhost:5000/ping
 ```
 
 ### 4. Set a few things before going to production
@@ -139,7 +139,7 @@ The server starts on <http://127.0.0.1:5000>.
 ### 5. Verify the server
 
 ```bash
-curl http://127.0.0.1:5000/health
+curl http://127.0.0.1:5000/ping
 ```
 
 Expected response:
