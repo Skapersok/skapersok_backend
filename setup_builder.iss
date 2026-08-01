@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "Skapersok backend"
-#define MyAppVersion "1.0"
+#define MyAppVersion "v0.1.0 beta"
 #define MyAppPublisher "Skapersøk"
 #define MyAppURL "https://www.skapersok.no"
 #define MyAppExeName "skapersok_backend.exe"
