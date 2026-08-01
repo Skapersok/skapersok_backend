@@ -178,6 +178,13 @@ sudo systemctl enable docker
 - `settings.py` and `paths.py`: environment and filesystem configuration
 - `beacon.py`: UDP discovery beacon for LAN client auto-detection
 
+# Building executables
+Skapersøk Backend can be built into a standalone executable using [PyInstaller](https://www.pyinstaller.org/). To make this process easier and more reproducible, you can use the `skapersok_backend.spec` file. Simply run the following command in the project root:
+
+```bash
+pyinstaller skapersok_backend.spec
+```
+
 ## License
 
 Skapersøk Backend is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See `LICENSE` for the full text.
