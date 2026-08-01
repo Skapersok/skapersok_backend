@@ -12,6 +12,9 @@ env/
 .vscode/
 .idea/
 
+# Installer files
+installer/
+
 # Python packaging/build
 build/
 dist/
