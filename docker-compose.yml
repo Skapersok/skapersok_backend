@@ -1,5 +1,5 @@
 services:
-  skapersok_backend:
+  skapersok:
     build: .
     network_mode: host
     volumes:
