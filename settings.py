@@ -1,137 +1,122 @@
-"""Module for managing application settings stored in a .env file."""
-
-import paths
-import uuid
+# config.py
 import secrets
 import string
+import uuid
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+import paths
 
 
-class Settings:
-    ALLOWED_SETTINGS = {
-        "image_quality": ("IMAGE_QUALITY", int),
-        "max_backups_size": ("MAX_BACKUPS_SIZE", int),
-        "backup_interval_seconds": ("BACKUP_INTERVAL_SECONDS", int),
-    }
-
-    def __init__(self):
-        # JWT_SECRET
-        self.JWT_SECRET: str = str(
-            self.get(
-                "JWT_SECRET",
-                "".join(
-                    secrets.choice(string.ascii_lowercase + string.digits)
-                    for _ in range(40)
-                ),
-            )
-        )
-
-        # ID
-        try:
-            uuid_string = self.get("ID", str(uuid.uuid4()))
-            uuid.UUID(uuid_string, version=4)
-        except Exception:
-            self.set("ID", str(uuid.uuid4()))
-        self.ID: str = str(self.get("ID"))
-
-        # IMAGE_QUALITY
-        try:
-            self.IMAGE_QUALITY: int = int(self.get("IMAGE_QUALITY", "85"))
-        except (TypeError, ValueError):
-            raise ValueError(
-                "Invalid value for IMAGE_QUALITY in .env. Must be an integer."
-            )
-
-        # PORT (constant, not stored in .env)
-        self.PORT: int = 5000
-
-        # ACCESS_TOKEN_EXPIRE_MINUTES
-        try:
-            self.ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-                self.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
-            )
-        except (TypeError, ValueError):
-            raise ValueError(
-                "Invalid value for ACCESS_TOKEN_EXPIRE_MINUTES in .env. Must be an integer."
-            )
-
-        # MAX_BACKUPS_SIZE
-        self.MAX_BACKUPS_SIZE: int = int(self.get("MAX_BACKUPS_SIZE", "1000000000"))
-
-        # BACKUP_INTERVAL_SECONDS
-        try:
-            self.BACKUP_INTERVAL_SECONDS: int = int(
-                self.get("BACKUP_INTERVAL_SECONDS", "3600")
-            )
-        except (TypeError, ValueError):
-            raise ValueError(
-                "Invalid value for BACKUP_INTERVAL_SECONDS in .env. Must be an integer."
-            )
-
-    # === .env I/O ===
-
-    def _load_env(self) -> dict[str, str | bool]:
-        env: dict[str, str | bool] = {}
-        if not paths.DOTENV_PATH.exists():
-            paths.DOTENV_PATH.parent.mkdir(parents=True, exist_ok=True)
-            paths.DOTENV_PATH.touch(exist_ok=True)
-            return env
-        with paths.DOTENV_PATH.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" in line:
-                    key, value = line.split("=", 1)
-                    env[key.strip()] = value.strip()
-                else:
-                    env[line] = True
-        return env
-
-    def _write_env(self, env: dict[str, str | bool]) -> None:
-        with paths.DOTENV_PATH.open("w", encoding="utf-8") as f:
-            for k, v in env.items():
-                f.write(f"{k}\n" if v is True else f"{k}={v}\n")
-
-    # === Low-level key access ===
-
-    def get(self, key: str, default: str | bool | None = None) -> str | bool | None:
-        env = self._load_env()
-        stored = env.get(key)
-        if stored is not None:
-            return stored
-        if default is not None:
-            env[key] = default if isinstance(default, bool) else str(default)
-            self._write_env(env)
-            return default
-        return None
-
-    def set(self, key: str, value: str | bool = True) -> None:
-        env = self._load_env()
-        env[key] = value
-        self._write_env(env)
-
-    def delete(self, key: str) -> None:
-        env = self._load_env()
-        if key in env:
-            del env[key]
-            self._write_env(env)
-
-    def isset(self, key: str) -> bool:
-        return key in self._load_env()
-
-    # === Named-setting API ===
-
-    def get_setting(self, name: str):
-        if name not in self.ALLOWED_SETTINGS:
-            raise KeyError(name)
-        env_key, cast = self.ALLOWED_SETTINGS[name]
-        return cast(self.get(env_key))
-
-    def set_setting(self, name: str, value) -> None:
-        if name not in self.ALLOWED_SETTINGS:
-            raise KeyError(name)
-        env_key, cast = self.ALLOWED_SETTINGS[name]
-        self.set(env_key, str(cast(value)))
+def _generate_secret(length: int = 40) -> str:
+    alphabet = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+def ensure_env_defaults() -> None:
+    """Guarantee config/.env exists and has a stable JWT_SECRET / ID.
+    Runs once at startup; does nothing on subsequent runs once these
+    are already present on disk."""
+    paths.CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
+    env_path = paths.DOTENV_PATH
+
+    existing: dict[str, str] = {}
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                existing[k.strip()] = v.strip()
+
+    changed = False
+    if "JWT_SECRET" not in existing:
+        existing["JWT_SECRET"] = _generate_secret()
+        changed = True
+    if "ID" not in existing:
+        existing["ID"] = str(uuid.uuid4())
+        changed = True
+
+    if changed:
+        with env_path.open("w", encoding="utf-8") as f:
+            for k, v in existing.items():
+                f.write(f"{k}={v}\n")
+
+
+def write_setting(key: str, value) -> None:
+    """Persist one setting to config/.env. Takes effect after restart."""
+    env_path = paths.DOTENV_PATH
+    lines = (
+        env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    )
+    existing = dict(
+        line.split("=", 1)
+        for line in lines
+        if line and not line.startswith("#") and "=" in line
+    )
+    existing[key.upper()] = str(value)
+    with env_path.open("w", encoding="utf-8") as f:
+        for k, v in existing.items():
+            f.write(f"{k}={v}\n")
+
+            # config.py (additions)
+
+
+ALLOWED_SETTINGS = {
+    "image_quality": "image_quality",
+    "max_backups_size": "max_backups_size",
+    "backup_interval_seconds": "backup_interval_seconds",
+    "autoopen_browser": "autoopen_browser",
+}
+
+
+def get_setting(name: str):
+    """Read a currently-active setting value (from the loaded Settings object,
+    i.e. reflects what's in effect since the last restart)."""
+    if name not in ALLOWED_SETTINGS:
+        raise KeyError(f"{name!r} is not an allowed setting")
+    return getattr(settings, ALLOWED_SETTINGS[name])
+
+
+def set_setting(name: str, value) -> None:
+    """Validate and persist a new value for an allowed setting.
+    Takes effect on next restart — does not mutate the running `settings` object."""
+    if name not in ALLOWED_SETTINGS:
+        raise KeyError(f"{name!r} is not an allowed setting")
+
+    field_name = ALLOWED_SETTINGS[name]
+
+    # Validate the new value against the Settings schema before writing it,
+    # by re-validating a copy with just this field overridden. This reuses
+    # Pydantic's type coercion/validation instead of hand-rolling casts,
+    # and catches bad input (e.g. "banana" for an int) before it ever hits disk.
+    candidate = settings.model_copy(update={field_name: value})
+    Settings.model_validate(candidate.model_dump())
+
+    env_key = field_name.upper()
+    write_setting(env_key, getattr(candidate, field_name))
+
+
+def list_settings() -> dict:
+    """Return all allowed settings and their current values — handy for a
+    GET /settings endpoint that populates an admin UI."""
+    return {name: get_setting(name) for name in ALLOWED_SETTINGS}
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(paths.DOTENV_PATH),
+        extra="ignore",
+    )
+
+    jwt_secret: str
+    id: str
+    image_quality: int = 85
+    access_token_expire_minutes: int = 60
+    max_backups_size: int = 1_000_000_000
+    backup_interval_seconds: int = 3600
+    autoopen_browser: bool = True
+    port: int = 5000
+
+
+ensure_env_defaults()
 settings = Settings()

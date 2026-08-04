@@ -1,0 +1,31 @@
+[project]
+name = "skapersok_backend"
+version = "0.1.0"
+description = "Skapersøk's backend"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn",
+    "pydantic",
+    "pydantic-settings",
+    "pillow",
+    "pillow-heif",
+    "rapidfuzz",
+    "cryptography",
+    "pwdlib[argon2]",
+    "pyjwt",
+]
+
+[project.optional-dependencies]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100

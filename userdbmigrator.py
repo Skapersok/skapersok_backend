@@ -41,16 +41,14 @@ def _update_database_version(version: int):
 def _nonetov0():
     users_conn = sqlite3.connect(paths.USERBASE_PATH)
     c = users_conn.cursor()
-    c.execute(
-        """
+    c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         permissions TEXT NOT NULL
     );
-    """
-    )
+    """)
     users_conn.commit()
     users_conn.close()
 
@@ -94,6 +92,8 @@ def migrate():
     Migrate the user database schema to the latest version.
     """
 
+    initial_database_version = _get_database_version()
+
     if _get_database_version() == NEWEST_DATABASE_VERSION:
         print(
             f"User database up to date (v{_get_database_version()}), no migration needed."
@@ -105,6 +105,11 @@ def migrate():
     while version < NEWEST_DATABASE_VERSION:
         version = _increment()
         print("Updated user database to version", version)
+
+    if initial_database_version is None:
+        import auth
+
+        auth.create_user("admin", "password", "admin")
 
 
 def is_up_to_date() -> bool:
