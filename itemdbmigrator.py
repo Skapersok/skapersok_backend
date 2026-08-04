@@ -166,6 +166,21 @@ def _v2tov3():
     _update_database_version(3)
 
 
+def _v3tov4():
+    """Remove color column from the database."""
+    conn = sqlite3.connect(paths.DATABASE_PATH)
+    c = conn.cursor()
+
+    c.execute("""
+        ALTER TABLE items DROP COLUMN color;
+    """)
+
+    conn.commit()
+    conn.close()
+
+    _update_database_version(4)
+
+
 def _increment():
     """
     Increment the database version. Returns the database version after the upgrade.
@@ -179,13 +194,15 @@ def _increment():
         _v1tov2()
     elif version == 2:
         _v2tov3()
+    elif version == 3:
+        _v3tov4()
     return _get_database_version()
 
 
 # IMPORTANT! When creating a new version n of the database:
 # 1. Create a _v[n-1]tov[n] function
 # 2. Set the below variable to n
-NEWEST_DATABASE_VERSION = 3
+NEWEST_DATABASE_VERSION = 4
 
 
 def migrate():

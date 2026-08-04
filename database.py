@@ -181,7 +181,6 @@ def add(
     keywords: str | None,
     children_arrangement: str | None,
     self_alignment: str | None,
-    color: str | None,
     custom_values: dict[str, str] | None = None,
 ):
     if not verify_placement_code_syntax(placement_code):
@@ -191,7 +190,7 @@ def add(
     try:
         c = conn.cursor()
         c.execute(
-            "INSERT INTO items (placement_code, name, description, keywords, children_arrangement, self_alignment, color, custom_values) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO items (placement_code, name, description, keywords, children_arrangement, self_alignment, custom_values) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 placement_code,
                 name,
@@ -199,7 +198,6 @@ def add(
                 keywords,
                 children_arrangement,
                 self_alignment,
-                color,
                 custom_values,
             ),
         )
@@ -241,7 +239,6 @@ def update(
     keywords: str | None,
     children_arrangement: str | None,
     self_alignment: str | None,
-    color: str | None,
     custom_values: dict[str, str] | None = None,
 ):
     conn = _connect_for_write()
@@ -271,11 +268,6 @@ def update(
             c.execute(
                 "UPDATE items SET self_alignment = ? WHERE placement_code = ?",
                 (self_alignment, placement_code),
-            )
-        if color is not None:
-            c.execute(
-                "UPDATE items SET color = ? WHERE placement_code = ?",
-                (color, placement_code),
             )
         if custom_values is not None:
             c.execute(
