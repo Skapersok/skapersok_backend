@@ -73,13 +73,10 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://skapersok.no",
+        "https://app.skapersok.no",
         "https://www.skapersok.no",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
     ],
-    # If you use auth cookies/sessions, keep True.
-    # If you only use Bearer tokens, False is usually simpler.
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin"],

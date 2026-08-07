@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "Skapersok backend"
-#define MyAppVersion "v0.1.0 beta"
+#define MyAppVersion "v0.2.0 beta"
 #define MyAppPublisher "Skapersøk"
 #define MyAppURL "https://www.skapersok.no"
 #define MyAppExeName "skapersok_backend.exe"
@@ -56,4 +56,3 @@ Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: st
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
