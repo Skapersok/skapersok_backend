@@ -40,7 +40,7 @@ If a commit is pushed with a version tag, github actions will attempt to make a 
 To use this feature, add a tag to your commit like this:
 "v" + [`pyproject.toml` version number]
 
-So "0.4.0b1" would be tagged as "v0.4.0b1".
+So a version of "0.4.0b1" inside `pyproject.toml` should be tagged as "v0.4.0b1".
 
 ## License
 
