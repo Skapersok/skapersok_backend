@@ -34,6 +34,9 @@ Skapersøk Backend can be built into a standalone executable using [PyInstaller]
 pyinstaller skapersok_backend.spec
 ```
 
+## Automatic release builder
+If a commit is pushed with a version tag, github actions will attempt to make a release if that tag matches the current version tag in `pyproject.toml`.
+
 ## License
 
 Skapersøk Backend is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See `LICENSE` for the full text.

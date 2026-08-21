@@ -3,7 +3,6 @@
 ; Non-commercial use only
 
 #define MyAppName "Skapersok backend"
-#define MyAppVersion "v0.2.0 beta"
 #define MyAppPublisher "Skapersøk"
 #define MyAppURL "https://www.skapersok.no"
 #define MyAppExeName "skapersok_backend.exe"
@@ -34,7 +33,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 PrivilegesRequired=lowest
-OutputBaseFilename=skapersok_backend_setup
+OutputBaseFilename=SkapersokBackendSetup
 SetupIconFile=assets\images\logo.ico
 SolidCompression=yes
 WizardStyle=modern dynamic
