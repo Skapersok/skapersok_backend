@@ -30,3 +30,8 @@ package = false
 
 [tool.ruff]
 line-length = 100
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.5",
+]

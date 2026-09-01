@@ -1,31 +1,32 @@
 import multiprocessing
+import os
+import sys
+from contextlib import asynccontextmanager
 from typing import Annotated
-from fastapi.responses import FileResponse
+
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
+
+import auth
+import backups
+import constants
+import custom_values
+import database as db
+import dbmigrator
 from auth import (
     Token,
+    User,
     authenticate_user,
     create_access_token,
     get_current_user,
     require_role,
-    User,
 )
-import auth
-import backups
 from beacon import beacon
-from settings import settings, ALLOWED_SETTINGS, list_settings, get_setting, set_setting
-import database as db
-from pydantic import BaseModel
-from contextlib import asynccontextmanager
-import dbmigrator
-import custom_values
-import constants
+from settings import ALLOWED_SETTINGS, get_setting, list_settings, set_setting, settings
 
-import sys
-import os
 
 def _supports_color():
     """Check if the terminal supports ANSI color codes."""

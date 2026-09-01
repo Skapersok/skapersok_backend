@@ -1,8 +1,7 @@
+import backups
 import custom_values_dbmigrator
 import itemdbmigrator
 import userdbmigrator
-
-import backups
 
 
 def migrate():

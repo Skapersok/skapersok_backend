@@ -1,13 +1,15 @@
-from datetime import datetime, timedelta, timezone
+import sqlite3
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
-from fastapi import Depends, status, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+
 import jwt
-from settings import settings
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from pydantic import BaseModel
-import sqlite3
+
 import paths
+from settings import settings
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
@@ -107,11 +109,9 @@ def authenticate_user(username: str, password: str):
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=ALGORITHM)
     return encoded_jwt
@@ -152,9 +152,7 @@ def update_user_password(username: str, new_password: str):
 
     conn = sqlite3.connect(paths.USERBASE_PATH, timeout=30, check_same_thread=False)
     cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE users SET password_hash=? WHERE username=?", (hashed_password, username)
-    )
+    cursor.execute("UPDATE users SET password_hash=? WHERE username=?", (hashed_password, username))
     conn.commit()
     conn.close()
 

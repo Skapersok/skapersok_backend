@@ -1,8 +1,9 @@
-import sqlite3
 import json
-import paths
-from pathlib import Path
 import shutil
+import sqlite3
+from pathlib import Path
+
+import paths
 
 
 def export_database(export_name: Path):

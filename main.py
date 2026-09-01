@@ -4,10 +4,11 @@ import time
 
 import uvicorn
 
+import constants
 import paths
 import routing
 from settings import ensure_env_defaults, settings
-import constants
+
 
 def _open_browser():
     # Start browser if applicable

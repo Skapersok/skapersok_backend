@@ -1,13 +1,10 @@
+import importlib.metadata
 import os
+import tomllib
 import urllib.parse
-import webbrowser
-import time
+from pathlib import Path
 
 from settings import settings
-
-import importlib.metadata
-import tomllib
-from pathlib import Path
 
 
 def get_version() -> str:
@@ -20,10 +17,12 @@ def get_version() -> str:
         except importlib.metadata.PackageNotFoundError:
             return "unknown"
 
+
 version = get_version()
 
 
 in_docker = os.environ.get("RUNNING_IN_DOCKER") == "true"
+
 
 # Returns the local IP address of the machine, or None if it cannot be determined.
 def local_ip() -> str | None:
@@ -46,9 +45,8 @@ def _get_local_server_url():
 
     server_url = f"http://{local_ip_address}:{settings.port}"
 
-    encoded_url = "https://skapersok.no/join?url=" + urllib.parse.quote(
-        server_url, safe=""
-    )
+    encoded_url = "https://skapersok.no/join?url=" + urllib.parse.quote(server_url, safe="")
     return encoded_url
+
 
 local_server_url = _get_local_server_url()

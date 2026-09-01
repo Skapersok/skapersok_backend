@@ -1,15 +1,13 @@
+import os
 import sqlite3
-from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageOps, UnidentifiedImageError
 from fastapi import UploadFile
+from PIL import UnidentifiedImageError
 from pillow_heif import register_heif_opener
-import os
 
 import paths
 import search as searching
-from settings import settings
 
 register_heif_opener()
 

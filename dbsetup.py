@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import getpass
-
-import dbmigrator
-
-import paths
 import os
 import shutil
+
 import auth
+import dbmigrator
+import paths
 
 
 # returns True if there is any data stored in the database, otherwise False

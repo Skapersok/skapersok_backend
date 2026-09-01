@@ -1,6 +1,8 @@
-from rapidfuzz import fuzz
-import database
 import sqlite3
+
+from rapidfuzz import fuzz
+
+import database
 import paths
 
 

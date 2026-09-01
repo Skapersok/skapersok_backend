@@ -1,6 +1,6 @@
-import socket
 import json
 import multiprocessing
+import socket
 
 BEACON_PORT = 50000
 CLIENT_REQUEST_IDENTIFIER = "WHERE_IS_SERVER"
@@ -84,7 +84,7 @@ def _run(config_queue):
                     continue
 
                 sock.sendto(response.encode(), addr)  # unicast reply
-            except socket.timeout:
+            except TimeoutError:
                 pass  # Timeout allows loop to check for interrupts
     except KeyboardInterrupt:
         # Graceful exit on Ctrl+C

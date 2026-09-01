@@ -1,11 +1,12 @@
+import json
 import shutil
 import time
 import uuid
-import paths
+from datetime import UTC, datetime
 from pathlib import Path
+
+import paths
 from settings import settings
-import json
-from datetime import datetime, timezone
 
 PENDING_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.json"
 FAILED_RESTORE_PATH = paths.CONFIG_FOLDER / "pending_restore.failed.json"
@@ -77,7 +78,7 @@ def _write_json_atomic(path: Path, payload: dict):
 def schedule_restore(info: BackupInfo, requested_by: str | None = None) -> None:
     payload = {
         "backup_id": info.id,
-        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "requested_at": datetime.now(UTC).isoformat(),
         "requested_by": requested_by,
     }
     _write_json_atomic(PENDING_RESTORE_PATH, payload)
