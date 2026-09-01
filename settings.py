@@ -1,4 +1,3 @@
-# config.py
 import secrets
 import string
 import uuid
@@ -18,6 +17,7 @@ def ensure_env_defaults() -> None:
     Runs once at startup; does nothing on subsequent runs once these
     are already present on disk."""
     paths.CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
+    paths.ensure_exists()
     env_path = paths.DOTENV_PATH
 
     existing: dict[str, str] = {}
