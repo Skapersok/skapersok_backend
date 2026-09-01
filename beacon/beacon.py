@@ -1,7 +1,10 @@
 import socket
-from . import common
 import json
 import multiprocessing
+
+BEACON_PORT = 50000
+CLIENT_REQUEST_IDENTIFIER = "WHERE_IS_SERVER"
+BEACON_RESPONSE_PREFIX = "SERVER_IS:"
 
 
 _config_queue = None
@@ -52,7 +55,7 @@ def _run(config_queue):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.settimeout(1.0)  # Add 1 second timeout
-    sock.bind(("", common.BEACON_PORT))
+    sock.bind(("", BEACON_PORT))
 
     # Initial config from queue
     info = config_queue.get()
@@ -72,11 +75,11 @@ def _run(config_queue):
             except:
                 pass  # No new config, use existing
 
-            response = f"{common.BEACON_RESPONSE_PREFIX}" + json.dumps(info)
+            response = f"{BEACON_RESPONSE_PREFIX}" + json.dumps(info)
             try:
                 data, addr = sock.recvfrom(1024)
 
-                if not data.decode() == common.CLIENT_REQUEST_IDENTIFIER:
+                if not data.decode() == CLIENT_REQUEST_IDENTIFIER:
                     # Ignore those who does not know how to ask
                     continue
 
