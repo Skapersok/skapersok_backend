@@ -1,6 +1,4 @@
 import multiprocessing
-import os
-import sys
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -12,6 +10,7 @@ from pydantic import BaseModel
 
 import auth
 import backups
+import console_welcome_banner
 import constants
 import custom_values
 import database as db
@@ -25,84 +24,12 @@ from auth import (
     require_role,
 )
 from beacon import beacon
-from dbsetup import some_database
 from settings import ALLOWED_SETTINGS, get_setting, list_settings, set_setting, settings
-
-
-def _supports_color():
-    """Check if the terminal supports ANSI color codes."""
-
-    if os.environ.get("NO_COLOR") is not None:
-        return False
-
-    if os.environ.get("FORCE_COLOR") is not None:
-        return True
-
-    if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
-        return False
-
-    if os.name == "nt":
-        # Windows 10+ terminals support ANSI; older cmd.exe doesn't
-        return "ANSICON" in os.environ or "WT_SESSION" in os.environ or "TERM" in os.environ
-
-    return True
-
-
-def print_startup_message():
-    import art
-
-    use_color = _supports_color()
-
-    def colorize(text, code):
-        return f"\033[{code}m{text}\033[0m" if use_color else text
-
-    def bold(text):
-        return f"\033[1m{text}\033[0m" if use_color else text
-
-    divider = "─" * 66
-    skapersok = art.text2art("Skapersok", chr_ignore=True)
-    skapersok = "\n".join(s.center(len(divider)) for s in skapersok.split("\n"))
-    version_line = f"v{constants.version}".center(len(divider))
-    line_length = len(divider)
-
-    print()
-    print(colorize(divider, "2"))
-    print(colorize(skapersok, "96"))  # cyan
-    print(colorize(divider, "2"))  # dim
-    print(colorize(version_line, "92"))  # green
-    print(colorize(divider, "2"))  # dim
-    print()
-    print("Welcome to the Skapersøk backend!".center(line_length))
-    print("For help, please visit: https://docs.skapersok.no/".center(line_length))
-    print()
-    print(colorize(divider, "2"))
-    if not constants.in_docker and settings.autoopen_browser:
-        print()
-        print("A browser window should have opened. If not, please visit:".center(line_length))
-        print(constants.local_server_url.center(line_length))
-        print()
-        print(colorize(divider, "2"))
-
-    if not some_database():
-        print()
-        print(bold("No database found. A new one will be created.".center(line_length)))
-        print(
-            bold(
-                "A user with username 'admin' and password 'admin' will be created.".center(
-                    line_length
-                )
-            )
-        )
-        print()
-        print(colorize(divider, "2"))
-
-    print()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
-    print_startup_message()
+    console_welcome_banner.print_banner()
     backup_process = None
 
     # === Startup code ===

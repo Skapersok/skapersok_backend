@@ -39,6 +39,19 @@ password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+class DefaultAdminUser:
+    """
+    This is the default user created when the application is first run. It has the username "admin" and password "password". It is recommended to change this user's password after the first login.
+    """
+
+    username = "admin"
+    password = "password"
+
+    @classmethod
+    def exists(cls) -> bool:
+        return authenticate_user(cls.username, cls.password) is not False
+
+
 def get_all_users() -> list[User]:
     conn = sqlite3.connect(paths.USERBASE_PATH, timeout=30, check_same_thread=False)
     cursor = conn.cursor()
