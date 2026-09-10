@@ -35,6 +35,7 @@ pyinstaller skapersok_backend.spec
 ```
 
 ## Automatic release builder
+
 If a commit is pushed with a version tag, github actions will attempt to make a release if that tag matches the current version tag in `pyproject.toml`.
 
 To use this feature, add a tag to your commit like this:
