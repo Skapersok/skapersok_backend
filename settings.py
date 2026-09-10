@@ -45,13 +45,9 @@ def ensure_env_defaults() -> None:
 def write_setting(key: str, value) -> None:
     """Persist one setting to config/.env. Takes effect after restart."""
     env_path = paths.DOTENV_PATH
-    lines = (
-        env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
-    )
+    lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
     existing = dict(
-        line.split("=", 1)
-        for line in lines
-        if line and not line.startswith("#") and "=" in line
+        line.split("=", 1) for line in lines if line and not line.startswith("#") and "=" in line
     )
     existing[key.upper()] = str(value)
     with env_path.open("w", encoding="utf-8") as f:
@@ -113,7 +109,7 @@ class Settings(BaseSettings):
     image_quality: int = 85
     access_token_expire_minutes: int = 60
     max_backups_size: int = 1_000_000_000
-    backup_interval_seconds: int = 3600
+    backup_interval_seconds: int = 60 * 60 * 24
     autoopen_browser: bool = True
     port: int = 5000
 
