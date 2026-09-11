@@ -11,7 +11,7 @@ import routing
 from settings import ensure_env_defaults, settings
 
 
-def _open_browser():
+def _open_browser() -> None:
     # Start browser if applicable
     if not settings.autoopen_browser:
         return
@@ -27,7 +27,7 @@ def _open_browser():
     webbrowser.open(encoded_url)
 
 
-def main():
+def main() -> None:
     paths.ensure_exists()
     ensure_env_defaults()
 
