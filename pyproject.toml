@@ -1,6 +1,6 @@
 [project]
 name = "skapersok_backend"
-version = "0.4.3"
+version = "1.0.0"
 description = "Skapersøk's backend"
 readme = "README.md"
 requires-python = ">=3.12"
