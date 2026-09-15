@@ -45,4 +45,4 @@ So a version of "0.4.0b1" inside `pyproject.toml` should be tagged as "v0.4.0b1"
 
 ## License
 
-Skapersøk Backend is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See `LICENSE` for the full text.
+See [LICENSE](LICENSE).
