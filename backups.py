@@ -46,9 +46,7 @@ class BackupInfo:
     def from_name(name: str):
         timestamp_str, id = name.split(" ", 1)
 
-        timestamp = datetime.strptime(
-            timestamp_str, TIMESTAMP_FILE_FORMAT
-        )  # new format
+        timestamp = datetime.strptime(timestamp_str, TIMESTAMP_FILE_FORMAT)
 
         return BackupInfo(id=id, timestamp=timestamp)
 
@@ -103,17 +101,13 @@ def apply_scheduled_restore() -> bool:
 
     backup_id = pending.get("backup_id")
     if not isinstance(backup_id, str):
-        _write_json_atomic(
-            FAILED_RESTORE_PATH, {"error": "Invalid backup_id", "pending": pending}
-        )
+        _write_json_atomic(FAILED_RESTORE_PATH, {"error": "Invalid backup_id", "pending": pending})
         clear_scheduled_restore()
         return False
 
     info = BackupInfo.from_id(backup_id)
     if info is None:
-        _write_json_atomic(
-            FAILED_RESTORE_PATH, {"error": "Backup not found", "pending": pending}
-        )
+        _write_json_atomic(FAILED_RESTORE_PATH, {"error": "Backup not found", "pending": pending})
         clear_scheduled_restore()
         return False
 
@@ -122,13 +116,13 @@ def apply_scheduled_restore() -> bool:
     return True
 
 
-def periodic_backup():
+def periodic_backup(event):
     """
     Run periodic backups. This function halts the thread.
     """
     try:
-        while True:
-            time.sleep(settings.backup_interval_seconds)
+        while not event.is_set():
+            event.wait(settings.backup_interval_seconds)
             dump()
     except KeyboardInterrupt:
         pass

@@ -8,12 +8,15 @@ BEACON_RESPONSE_PREFIX = "SERVER_IS:"
 
 
 _config_queue = None
+_stop_event = None
 
 
-def start(server_port: int, server_name: str, server_id: str):
+def start(server_port: int, server_name: str, server_id: str, stop_event: multiprocessing.Event):
     global _config_queue
+    global _stop_event
 
     _config_queue = multiprocessing.Queue()
+    _stop_event = stop_event
 
     # Send initial config
     _config_queue.put(
@@ -60,8 +63,7 @@ def _run(config_queue):
     # Initial config from queue
     info = config_queue.get()
     try:
-        while True:
-
+        while not _stop_event.is_set():
             # Check for config updates (non-blocking)
             try:
                 new_info = config_queue.get_nowait()
@@ -86,9 +88,6 @@ def _run(config_queue):
                 sock.sendto(response.encode(), addr)  # unicast reply
             except TimeoutError:
                 pass  # Timeout allows loop to check for interrupts
-    except KeyboardInterrupt:
-        # Graceful exit on Ctrl+C
-        print("Beacon stopped.")
     finally:
+        print("Beacon stopped.")
         sock.close()
-

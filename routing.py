@@ -47,17 +47,21 @@ async def lifespan(app: FastAPI):
     server_name = db.get_root()["name"]
 
     # Start beacon once
+    beacon_stop_event = multiprocessing.Event()
     beacon.start(
         server_port=settings.port,
         server_name=server_name,
         server_id=server_id,
+        stop_event=beacon_stop_event,
     )
 
     # Start backup process once
+    backup_stop_event = multiprocessing.Event()
     backup_process = multiprocessing.Process(
         target=backups.periodic_backup,
         daemon=True,
         name="backuper",
+        args=(backup_stop_event,),
     )
     backup_process.start()
 
@@ -65,9 +69,8 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        if backup_process is not None and backup_process.is_alive():
-            backup_process.terminate()
-            backup_process.join(timeout=5)
+        beacon_stop_event.set()  # Signal the beacon process to stop
+        backup_stop_event.set()  # Signal the backup process to stop
 
     # === Shutdown code goes here ===
 
